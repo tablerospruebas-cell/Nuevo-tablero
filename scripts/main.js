@@ -3,12 +3,18 @@
 geotab.addin.dashboard = function () {
     let api;
     let selectedDays = 7;
+    let customFromDate = null;   // ISO string when custom range is active
+    let customToDate = null;
+    let isCustomRange = false;
 
     // ─── DOM refs ───────────────────────────────────────────────────────────
     let btnRefresh, lastUpdatedEl, errorToast, errorToastMsg;
 
     // ─── Helpers ────────────────────────────────────────────────────────────
     const getDateRange = () => {
+        if (isCustomRange && customFromDate && customToDate) {
+            return { fromDate: customFromDate, toDate: customToDate };
+        }
         const toDate = new Date();
         const fromDate = new Date();
         fromDate.setDate(fromDate.getDate() - selectedDays);
@@ -336,14 +342,86 @@ geotab.addin.dashboard = function () {
             errorToast = document.getElementById("error-toast");
             errorToastMsg = document.getElementById("error-toast-msg");
 
-            // Date range buttons
-            document.querySelectorAll(".btn-range").forEach(btn => {
+            // ── Pre-set date range buttons ────────────────────────────────
+            document.querySelectorAll(".btn-range[data-days]").forEach(btn => {
                 btn.addEventListener("click", () => {
                     document.querySelectorAll(".btn-range").forEach(b => b.classList.remove("active"));
                     btn.classList.add("active");
                     selectedDays = parseInt(btn.dataset.days, 10);
+                    isCustomRange = false;
+                    customFromDate = null;
+                    customToDate = null;
+                    // Reset custom button label
+                    const btnCustom = document.getElementById("btn-custom");
+                    if (btnCustom) btnCustom.dataset.label = "";
                     loadData();
                 });
+            });
+
+            // ── Custom date range button / popover ────────────────────────
+            const btnCustom = document.getElementById("btn-custom");
+            const datePopover = document.getElementById("date-popover");
+            const dateFromInput = document.getElementById("date-from");
+            const dateToInput = document.getElementById("date-to");
+            const btnApply = document.getElementById("btn-date-apply");
+            const btnCancel = document.getElementById("btn-date-cancel");
+
+            // Set default values (today and 7 days ago)
+            const todayStr = new Date().toISOString().slice(0, 10);
+            const weekAgoStr = (() => { const d = new Date(); d.setDate(d.getDate() - 7); return d.toISOString().slice(0, 10); })();
+            dateFromInput.value = weekAgoStr;
+            dateToInput.value = todayStr;
+            dateToInput.max = todayStr;
+
+            const closePopover = () => datePopover.classList.remove("open");
+
+            btnCustom.addEventListener("click", (e) => {
+                e.stopPropagation();
+                datePopover.classList.toggle("open");
+            });
+
+            btnCancel.addEventListener("click", closePopover);
+
+            btnApply.addEventListener("click", () => {
+                const from = dateFromInput.value;
+                const to = dateToInput.value;
+                if (!from || !to) {
+                    showError("Selecciona ambas fechas antes de aplicar.");
+                    return;
+                }
+                if (new Date(from) > new Date(to)) {
+                    showError("La fecha 'Desde' no puede ser mayor que 'Hasta'.");
+                    return;
+                }
+                customFromDate = new Date(from + "T00:00:00").toISOString();
+                customToDate = new Date(to + "T23:59:59").toISOString();
+                isCustomRange = true;
+
+                // Update button label with chosen range
+                const fmt = (s) => new Date(s + "T12:00:00").toLocaleDateString("es-MX", { day: "2-digit", month: "short" });
+                btnCustom.innerHTML = `
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                    ${fmt(from)} – ${fmt(to)}
+                `;
+
+                // Deactivate preset buttons, activate custom
+                document.querySelectorAll(".btn-range").forEach(b => b.classList.remove("active"));
+                btnCustom.classList.add("active");
+
+                closePopover();
+                loadData();
+            });
+
+            // Close popover when clicking outside
+            document.addEventListener("click", (e) => {
+                if (!datePopover.contains(e.target) && e.target !== btnCustom) {
+                    closePopover();
+                }
+            });
+
+            // Enforce max date on "from" input
+            dateFromInput.addEventListener("change", () => {
+                dateToInput.min = dateFromInput.value;
             });
 
             btnRefresh.addEventListener("click", () => { loadData(); });
