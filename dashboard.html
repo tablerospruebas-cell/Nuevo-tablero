@@ -40,6 +40,41 @@
                     <button class="btn-range active" data-days="7" id="btn-7d">7 días</button>
                     <button class="btn-range" data-days="15" id="btn-15d">15 días</button>
                     <button class="btn-range" data-days="30" id="btn-30d">30 días</button>
+                    <button class="btn-range btn-range--custom" id="btn-custom">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2.5">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                            <line x1="16" y1="2" x2="16" y2="6" />
+                            <line x1="8" y1="2" x2="8" y2="6" />
+                            <line x1="3" y1="10" x2="21" y2="10" />
+                        </svg>
+                        Personalizado
+                    </button>
+                </div>
+
+                <!-- Custom Date Popover -->
+                <div class="date-popover glass-panel" id="date-popover">
+                    <div class="date-popover-header">Rango de Fechas</div>
+                    <div class="date-popover-fields">
+                        <div class="date-field">
+                            <label for="date-from">Desde</label>
+                            <input type="date" id="date-from" class="date-input">
+                        </div>
+                        <div class="date-field">
+                            <label for="date-to">Hasta</label>
+                            <input type="date" id="date-to" class="date-input">
+                        </div>
+                    </div>
+                    <div class="date-popover-footer">
+                        <button class="btn-popover-cancel" id="btn-date-cancel">Cancelar</button>
+                        <button class="btn-popover-apply" id="btn-date-apply">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2.5">
+                                <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                            Aplicar
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Refresh -->
