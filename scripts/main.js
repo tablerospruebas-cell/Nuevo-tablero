@@ -250,6 +250,62 @@ geotab.addin.dashboard = function () {
         });
     };
 
+    // ─── Render raw table (all data) ──────────────────────────────────────────
+    const renderRawTable = (fillups) => {
+        const thead = document.getElementById("raw-thead");
+        const tbody = document.getElementById("raw-tbody");
+        if (!thead || !tbody) return;
+
+        if (fillups.length === 0) {
+            thead.innerHTML = "<tr><th>Sin datos</th></tr>";
+            tbody.innerHTML = "<tr><td style=\"text-align:center; padding: 2rem;\">No se encontraron llenados en el periodo seleccionado.</td></tr>";
+            return;
+        }
+
+        // Collect all unique keys from all objects
+        const keySet = new Set();
+        fillups.forEach(f => {
+            Object.keys(f).forEach(k => keySet.add(k));
+        });
+        
+        // Sort keys alphabetically but prioritize common ones
+        const priorityKeys = ["device", "dateTime", "fuelVolumeAdded", "volume", "odometer"];
+        const columns = Array.from(keySet).sort((a, b) => {
+            const pA = priorityKeys.indexOf(a);
+            const pB = priorityKeys.indexOf(b);
+            if (pA !== -1 && pB !== -1) return pA - pB;
+            if (pA !== -1) return -1;
+            if (pB !== -1) return 1;
+            return a.localeCompare(b);
+        });
+
+        // Header
+        const trHead = document.createElement("tr");
+        columns.forEach(col => {
+            const th = document.createElement("th");
+            th.textContent = col;
+            trHead.appendChild(th);
+        });
+        thead.innerHTML = "";
+        thead.appendChild(trHead);
+
+        // Body
+        tbody.innerHTML = "";
+        fillups.forEach(f => {
+            const tr = document.createElement("tr");
+            columns.forEach(col => {
+                const td = document.createElement("td");
+                let val = f[col];
+                if (val !== null && typeof val === "object") {
+                    val = val.name ? val.name : (val.id ? val.id : JSON.stringify(val));
+                }
+                td.textContent = (val !== undefined && val !== null && val !== "") ? val : "—";
+                tr.appendChild(td);
+            });
+            tbody.appendChild(tr);
+        });
+    };
+
     // ─── Reset UI ─────────────────────────────────────────────────────────────
     const resetUI = () => {
         // Summary stats
@@ -289,6 +345,12 @@ geotab.addin.dashboard = function () {
         const emptyEl = document.getElementById("table-empty");
         if (emptyEl) emptyEl.style.display = "none";
 
+        // Raw Table
+        const rawThead = document.getElementById("raw-thead");
+        const rawTbody = document.getElementById("raw-tbody");
+        if (rawThead) rawThead.innerHTML = `<tr><th>Cargando...</th></tr>`;
+        if (rawTbody) rawTbody.innerHTML = `<tr class="tr-skeleton"><td><div class="td-skel"></div></td></tr>`;
+
         if (searchInput) searchInput.value = "";
     };
 
@@ -301,6 +363,7 @@ geotab.addin.dashboard = function () {
             filteredFillups = allFillups.filter(f => getDeviceName(f).toLowerCase().includes(q));
         }
         renderTable(filteredFillups);
+        renderRawTable(filteredFillups);
         const badgeTable = document.getElementById("badge-table");
         if (badgeTable) badgeTable.textContent = `${filteredFillups.length} registros`;
     };
@@ -323,6 +386,7 @@ geotab.addin.dashboard = function () {
             renderSummary(allFillups);
             renderRanking(allFillups);
             renderTable(filteredFillups);
+            renderRawTable(filteredFillups);
 
             const now = new Date();
             lastUpdatedEl.textContent = `Actualizado: ${now.toLocaleTimeString("es-MX", {
