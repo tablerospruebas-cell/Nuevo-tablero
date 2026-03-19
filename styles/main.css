@@ -679,6 +679,7 @@ body {
 
 /* Columns */
 .col-unit { min-width: 160px; }
+.col-driver { min-width: 130px; }
 .col-date { min-width: 150px; }
 .col-vol  { min-width: 90px; text-align: center; }
 .col-odo  { min-width: 110px; }
