@@ -250,9 +250,7 @@ geotab.addin.dashboard = function () {
                     <span class="vol-badge ${volClass}">${formatVolume(f.derivedVolume)}</span>
                 </td>
                 <td class="col-odo">${formatOdometer(f.odometer)}</td>
-                <td class="col-dur">${formatDuration(f.durationOfFill)}</td>
-                <td class="col-tank">${f.fuelType || "—"}</td>
-                <td class="col-loc">${f.location || "—"}</td>
+                <td class="col-loc">${f.location ? JSON.stringify(f.location) : "—"}</td>
             `;
             tbody.appendChild(tr);
         });
@@ -339,12 +337,12 @@ geotab.addin.dashboard = function () {
         // Table
         const tbody = document.getElementById("fillup-tbody");
         if (tbody) tbody.innerHTML = `
-            <tr class="tr-skeleton"><td colspan="8"><div class="td-skel"></div></td></tr>
-            <tr class="tr-skeleton"><td colspan="8"><div class="td-skel"></div></td></tr>
-            <tr class="tr-skeleton"><td colspan="8"><div class="td-skel"></div></td></tr>
-            <tr class="tr-skeleton"><td colspan="8"><div class="td-skel"></div></td></tr>
-            <tr class="tr-skeleton"><td colspan="8"><div class="td-skel"></div></td></tr>
-            <tr class="tr-skeleton"><td colspan="8"><div class="td-skel"></div></td></tr>
+            <tr class="tr-skeleton"><td colspan="6"><div class="td-skel"></div></td></tr>
+            <tr class="tr-skeleton"><td colspan="6"><div class="td-skel"></div></td></tr>
+            <tr class="tr-skeleton"><td colspan="6"><div class="td-skel"></div></td></tr>
+            <tr class="tr-skeleton"><td colspan="6"><div class="td-skel"></div></td></tr>
+            <tr class="tr-skeleton"><td colspan="6"><div class="td-skel"></div></td></tr>
+            <tr class="tr-skeleton"><td colspan="6"><div class="td-skel"></div></td></tr>
         `;
 
         const badgeTable = document.getElementById("badge-table");
