@@ -236,6 +236,28 @@
 
         </main>
 
+        <!-- ═══════════ RAW DATA TABLE ═══════════ -->
+        <section class="raw-data-panel panel glass-panel">
+            <div class="panel-header">
+                <div class="panel-title-group">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+                    </svg>
+                    <span>Datos Completos (Crudos)</span>
+                </div>
+            </div>
+            <div class="table-wrapper raw-table-wrapper">
+                <table class="fillup-table raw-table" id="raw-table">
+                    <thead id="raw-thead">
+                        <tr><th>Cargando...</th></tr>
+                    </thead>
+                    <tbody id="raw-tbody">
+                        <tr class="tr-skeleton"><td><div class="td-skel"></div></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
         <!-- Global Error Toast -->
         <div class="error-toast" id="error-toast" style="display:none;">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
