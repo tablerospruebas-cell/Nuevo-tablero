@@ -674,6 +674,7 @@ body {
 .col-odo  { min-width: 110px; }
 .col-dur  { min-width: 80px; }
 .col-tank { min-width: 80px; }
+.col-loc  { min-width: 150px; }
 
 /* Unit chip */
 .unit-chip {
