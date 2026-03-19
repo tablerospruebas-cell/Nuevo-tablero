@@ -111,7 +111,7 @@ geotab.addin.dashboard = function () {
     // ─── Render summary KPIs ─────────────────────────────────────────────────
     const renderSummary = (fillups) => {
         const total = fillups.length;
-        const totalLitros = fillups.reduce((s, f) => s + (parseFloat(f.fuelVolumeAdded) || 0), 0);
+        const totalLitros = fillups.reduce((s, f) => s + (parseFloat(f.derivedVolume) || 0), 0);
         const promedio = total > 0 ? totalLitros / total : 0;
 
         const deviceSet = new Set(fillups.map(f => getDeviceName(f)));
@@ -167,7 +167,7 @@ geotab.addin.dashboard = function () {
         fillups.forEach(f => {
             const name = getDeviceName(f);
             byDevice[name] = (byDevice[name] || 0) + 1;
-            litrosByDevice[name] = (litrosByDevice[name] || 0) + (parseFloat(f.fuelVolumeAdded) || 0);
+            litrosByDevice[name] = (litrosByDevice[name] || 0) + (parseFloat(f.derivedVolume) || 0);
         });
 
         const items = Object.entries(byDevice)
@@ -229,7 +229,7 @@ geotab.addin.dashboard = function () {
         sorted.forEach(f => {
             const tr = document.createElement("tr");
             tr.className = "fillup-row";
-            const vol = parseFloat(f.fuelVolumeAdded) || 0;
+            const vol = parseFloat(f.derivedVolume) || 0;
             const volClass = vol > 50 ? "vol-high" : vol > 20 ? "vol-mid" : "vol-low";
 
             tr.innerHTML = `
@@ -247,11 +247,12 @@ geotab.addin.dashboard = function () {
                     </div>
                 </td>
                 <td class="col-vol">
-                    <span class="vol-badge ${volClass}">${formatVolume(f.fuelVolumeAdded)}</span>
+                    <span class="vol-badge ${volClass}">${formatVolume(f.derivedVolume)}</span>
                 </td>
                 <td class="col-odo">${formatOdometer(f.odometer)}</td>
                 <td class="col-dur">${formatDuration(f.durationOfFill)}</td>
                 <td class="col-tank">${f.fuelType || "—"}</td>
+                <td class="col-loc">${f.location || "—"}</td>
             `;
             tbody.appendChild(tr);
         });
@@ -276,7 +277,7 @@ geotab.addin.dashboard = function () {
         });
         
         // Sort keys alphabetically but prioritize common ones
-        const priorityKeys = ["device", "dateTime", "fuelVolumeAdded", "volume", "odometer"];
+        const priorityKeys = ["device", "dateTime", "derivedVolume", "location", "odometer"];
         const columns = Array.from(keySet).sort((a, b) => {
             const pA = priorityKeys.indexOf(a);
             const pB = priorityKeys.indexOf(b);
@@ -338,12 +339,12 @@ geotab.addin.dashboard = function () {
         // Table
         const tbody = document.getElementById("fillup-tbody");
         if (tbody) tbody.innerHTML = `
-            <tr class="tr-skeleton"><td colspan="7"><div class="td-skel"></div></td></tr>
-            <tr class="tr-skeleton"><td colspan="7"><div class="td-skel"></div></td></tr>
-            <tr class="tr-skeleton"><td colspan="7"><div class="td-skel"></div></td></tr>
-            <tr class="tr-skeleton"><td colspan="7"><div class="td-skel"></div></td></tr>
-            <tr class="tr-skeleton"><td colspan="7"><div class="td-skel"></div></td></tr>
-            <tr class="tr-skeleton"><td colspan="7"><div class="td-skel"></div></td></tr>
+            <tr class="tr-skeleton"><td colspan="8"><div class="td-skel"></div></td></tr>
+            <tr class="tr-skeleton"><td colspan="8"><div class="td-skel"></div></td></tr>
+            <tr class="tr-skeleton"><td colspan="8"><div class="td-skel"></div></td></tr>
+            <tr class="tr-skeleton"><td colspan="8"><div class="td-skel"></div></td></tr>
+            <tr class="tr-skeleton"><td colspan="8"><div class="td-skel"></div></td></tr>
+            <tr class="tr-skeleton"><td colspan="8"><div class="td-skel"></div></td></tr>
         `;
 
         const badgeTable = document.getElementById("badge-table");
