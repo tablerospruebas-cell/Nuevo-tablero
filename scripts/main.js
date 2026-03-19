@@ -68,6 +68,12 @@ geotab.addin.dashboard = function () {
             : (fillup.device && fillup.device.id ? fillup.device.id : "Desconocido");
     };
 
+    const getDriverName = (fillup) => {
+        return (fillup.driver && fillup.driver.name)
+            ? fillup.driver.name
+            : (fillup.driver && fillup.driver.id && fillup.driver.id !== "UnknownDriverId" ? fillup.driver.id : "Desconocido");
+    };
+
     const getFuelTypeLabel = (fillup) => {
         const ft = fillup.fuelType || fillup.tankCapacity || null;
         if (!ft) return "—";
@@ -233,6 +239,7 @@ geotab.addin.dashboard = function () {
                         <span>${getDeviceName(f)}</span>
                     </div>
                 </td>
+                <td class="col-driver">${getDriverName(f)}</td>
                 <td class="col-date">
                     <div class="date-cell">
                         <span class="date-main">${formatDateShort(f.dateTime)}</span>
@@ -331,12 +338,12 @@ geotab.addin.dashboard = function () {
         // Table
         const tbody = document.getElementById("fillup-tbody");
         if (tbody) tbody.innerHTML = `
-            <tr class="tr-skeleton"><td colspan="6"><div class="td-skel"></div></td></tr>
-            <tr class="tr-skeleton"><td colspan="6"><div class="td-skel"></div></td></tr>
-            <tr class="tr-skeleton"><td colspan="6"><div class="td-skel"></div></td></tr>
-            <tr class="tr-skeleton"><td colspan="6"><div class="td-skel"></div></td></tr>
-            <tr class="tr-skeleton"><td colspan="6"><div class="td-skel"></div></td></tr>
-            <tr class="tr-skeleton"><td colspan="6"><div class="td-skel"></div></td></tr>
+            <tr class="tr-skeleton"><td colspan="7"><div class="td-skel"></div></td></tr>
+            <tr class="tr-skeleton"><td colspan="7"><div class="td-skel"></div></td></tr>
+            <tr class="tr-skeleton"><td colspan="7"><div class="td-skel"></div></td></tr>
+            <tr class="tr-skeleton"><td colspan="7"><div class="td-skel"></div></td></tr>
+            <tr class="tr-skeleton"><td colspan="7"><div class="td-skel"></div></td></tr>
+            <tr class="tr-skeleton"><td colspan="7"><div class="td-skel"></div></td></tr>
         `;
 
         const badgeTable = document.getElementById("badge-table");
@@ -376,11 +383,25 @@ geotab.addin.dashboard = function () {
 
         const { fromDate, toDate } = getDateRange();
 
-        api.call("Get", {
-            typeName: "FillUp",
-            search: { fromDate, toDate }
-        }, (result) => {
-            allFillups = result || [];
+        api.multiCall([
+            ["Get", { typeName: "FillUp", search: { fromDate, toDate } }],
+            ["Get", { typeName: "Device" }]
+        ], (results) => {
+            const result = results[0] || [];
+            const devices = results[1] || [];
+
+            // Map devices id -> name
+            const deviceMap = {};
+            devices.forEach(d => { deviceMap[d.id] = d.name; });
+
+            // Enrich fillups with real name
+            result.forEach(f => {
+                if (f.device && f.device.id && deviceMap[f.device.id]) {
+                    f.device.name = deviceMap[f.device.id];
+                }
+            });
+
+            allFillups = result;
             filteredFillups = [...allFillups];
 
             renderSummary(allFillups);
@@ -396,8 +417,8 @@ geotab.addin.dashboard = function () {
             btnRefresh.disabled = false;
             btnRefresh.classList.remove("loading");
         }, (err) => {
-            console.error("Error fetching FillUp:", err);
-            showError("Error al cargar los llenados. Verifique la conexión.");
+            console.error("Error fetching data:", err);
+            showError("Error al cargar los datos. Verifique la conexión.");
             btnRefresh.disabled = false;
             btnRefresh.classList.remove("loading");
         });
