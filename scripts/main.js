@@ -266,8 +266,8 @@ geotab.addin.dashboard = function () {
         // ── 5. Fuel Usage ────────────────────────────────────────────────────
         const fuelUsed = apiGet("FuelUsed", { fromDate, toDate });
 
-        // ── 6. Fill-ups (FuelTransaction) ────────────────────────────────────
-        const fillUps = apiGet("FuelTransaction", { fromDate, toDate });
+        // ── 6. Fill-ups (FillUp) ─────────────────────────────────────────────
+        const fillUps = apiGet("FillUp", { fromDate, toDate });
 
         // ── Wait for all and update cards ────────────────────────────────────
         Promise.all([faultData, rpmExceptions, speedExceptions, speedExceptionsEn,
