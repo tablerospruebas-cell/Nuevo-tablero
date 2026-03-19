@@ -4,9 +4,9 @@
 <head>
     <meta charset="utf-8">
     <meta http-equiv="x-ua-compatible" content="ie=edge">
-    <meta name="description" content="Dashboard de Indicadores KPI Geotab">
+    <meta name="description" content="Dashboard de Llenados Detectados - Geotab FillUp">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>Dashboard KPI</title>
+    <title>Llenados Detectados</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -20,17 +20,16 @@
         <!-- ═══════════ HEADER ═══════════ -->
         <header class="top-nav glass-panel">
             <div class="nav-brand">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="var(--color-primary)" stroke-width="2"
-                        stroke-linecap="round" stroke-linejoin="round" />
-                    <path d="M2 17L12 22L22 17" stroke="var(--color-primary)" stroke-width="2" stroke-linecap="round"
-                        stroke-linejoin="round" />
-                    <path d="M2 12L12 17L22 12" stroke="var(--color-primary)" stroke-width="2" stroke-linecap="round"
-                        stroke-linejoin="round" />
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M3 22V8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v14" stroke="var(--color-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M2 22h20" stroke="var(--color-primary)" stroke-width="2" stroke-linecap="round"/>
+                    <path d="M19 22V12l-2-2" stroke="var(--color-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M7 10v4" stroke="var(--color-primary)" stroke-width="2" stroke-linecap="round"/>
+                    <path d="M11 10v4" stroke="var(--color-primary)" stroke-width="2" stroke-linecap="round"/>
                 </svg>
                 <div>
-                    <h1>Dashboard de Indicadores</h1>
-                    <span class="nav-subtitle">Geotab Fleet Intelligence</span>
+                    <h1>Llenados Detectados</h1>
+                    <span class="nav-subtitle">Geotab FillUp Intelligence</span>
                 </div>
             </div>
 
@@ -41,8 +40,7 @@
                     <button class="btn-range" data-days="15" id="btn-15d">15 días</button>
                     <button class="btn-range" data-days="30" id="btn-30d">30 días</button>
                     <button class="btn-range btn-range--custom" id="btn-custom">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2.5">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                             <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
                             <line x1="16" y1="2" x2="16" y2="6" />
                             <line x1="8" y1="2" x2="8" y2="6" />
@@ -68,8 +66,7 @@
                     <div class="date-popover-footer">
                         <button class="btn-popover-cancel" id="btn-date-cancel">Cancelar</button>
                         <button class="btn-popover-apply" id="btn-date-apply">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2.5">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                                 <polyline points="20 6 9 17 4 12" />
                             </svg>
                             Aplicar
@@ -79,8 +76,7 @@
 
                 <!-- Refresh -->
                 <button id="btn-refresh" class="btn-refresh" title="Refrescar datos">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        stroke-width="2.5">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                         <path d="M23 4V10H17" />
                         <path d="M1 20V14H7" />
                         <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
@@ -92,189 +88,158 @@
             </div>
         </header>
 
-        <!-- ═══════════ KPI GRID ═══════════ -->
-        <main class="kpi-grid" id="kpi-grid">
+        <!-- ═══════════ SUMMARY KPI STRIP ═══════════ -->
+        <section class="summary-strip">
 
-            <!-- 1. Mantenimiento Correctivo -->
-            <article class="kpi-card" id="card-mantto" data-color="orange">
-                <div class="kpi-card-header">
-                    <div class="kpi-icon kpi-icon--orange">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path
-                                d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
-                        </svg>
-                    </div>
-                    <div class="kpi-title-group">
-                        <h2 class="kpi-title">Mantto Correctivo</h2>
-                        <p class="kpi-subtitle">Fallos registrados</p>
-                    </div>
-                    <div class="kpi-badge skeleton" id="badge-mantto">—</div>
+            <!-- Total Llenados -->
+            <div class="stat-card" data-color="cyan">
+                <div class="stat-icon stat-icon--cyan">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 22V8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v14"/><path d="M2 22h20"/>
+                        <path d="M19 22V12l-2-2"/><path d="M7 10v4"/><path d="M11 10v4"/>
+                    </svg>
                 </div>
-                <div class="kpi-counter-row">
-                    <span class="kpi-counter kpi-counter--orange skeleton" id="count-mantto">—</span>
-                    <span class="kpi-trend" id="trend-mantto"></span>
+                <div class="stat-body">
+                    <div class="stat-label">Total Llenados</div>
+                    <div class="stat-value skeleton" id="stat-total">—</div>
+                    <div class="stat-sub" id="stat-total-badge">— días</div>
                 </div>
-                <div class="kpi-detail-label">Unidad con más fallas</div>
-                <div class="kpi-top-unit skeleton" id="top-mantto">Cargando...</div>
-                <ul class="kpi-list" id="list-mantto">
-                    <li class="kpi-list-skeleton"></li>
-                    <li class="kpi-list-skeleton"></li>
-                    <li class="kpi-list-skeleton"></li>
-                </ul>
-            </article>
+            </div>
 
-            <!-- 2. Medición de RPM -->
-            <article class="kpi-card" id="card-rpm" data-color="blue">
-                <div class="kpi-card-header">
-                    <div class="kpi-icon kpi-icon--blue">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="12" r="10" />
-                            <path d="M12 6v6l4 2" />
-                        </svg>
-                    </div>
-                    <div class="kpi-title-group">
-                        <h2 class="kpi-title">Medición de RPM</h2>
-                        <p class="kpi-subtitle">Excepciones detectadas</p>
-                    </div>
-                    <div class="kpi-badge skeleton" id="badge-rpm">—</div>
+            <!-- Total Litros -->
+            <div class="stat-card" data-color="green">
+                <div class="stat-icon stat-icon--green">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2L8 8H5l7 14 7-14h-3L12 2z"/>
+                    </svg>
                 </div>
-                <div class="kpi-counter-row">
-                    <span class="kpi-counter kpi-counter--blue skeleton" id="count-rpm">—</span>
-                    <span class="kpi-trend" id="trend-rpm"></span>
+                <div class="stat-body">
+                    <div class="stat-label">Total Litros</div>
+                    <div class="stat-value skeleton" id="stat-litros">—</div>
+                    <div class="stat-sub">litros cargados</div>
                 </div>
-                <div class="kpi-detail-label">Unidad con más eventos</div>
-                <div class="kpi-top-unit skeleton" id="top-rpm">Cargando...</div>
-                <ul class="kpi-list" id="list-rpm">
-                    <li class="kpi-list-skeleton"></li>
-                    <li class="kpi-list-skeleton"></li>
-                    <li class="kpi-list-skeleton"></li>
-                </ul>
-            </article>
+            </div>
 
-            <!-- 3. Excesos de Velocidad -->
-            <article class="kpi-card" id="card-speed" data-color="red">
-                <div class="kpi-card-header">
-                    <div class="kpi-icon kpi-icon--red">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
-                        </svg>
-                    </div>
-                    <div class="kpi-title-group">
-                        <h2 class="kpi-title">Excesos de Velocidad</h2>
-                        <p class="kpi-subtitle">Excepciones detectadas</p>
-                    </div>
-                    <div class="kpi-badge skeleton" id="badge-speed">—</div>
+            <!-- Promedio por llenado -->
+            <div class="stat-card" data-color="blue">
+                <div class="stat-icon stat-icon--blue">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
+                        <line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/>
+                    </svg>
                 </div>
-                <div class="kpi-counter-row">
-                    <span class="kpi-counter kpi-counter--red skeleton" id="count-speed">—</span>
-                    <span class="kpi-trend" id="trend-speed"></span>
+                <div class="stat-body">
+                    <div class="stat-label">Promedio / Llenado</div>
+                    <div class="stat-value skeleton" id="stat-promedio">—</div>
+                    <div class="stat-sub">litros en promedio</div>
                 </div>
-                <div class="kpi-detail-label">Unidad con más excesos</div>
-                <div class="kpi-top-unit skeleton" id="top-speed">Cargando...</div>
-                <ul class="kpi-list" id="list-speed">
-                    <li class="kpi-list-skeleton"></li>
-                    <li class="kpi-list-skeleton"></li>
-                    <li class="kpi-list-skeleton"></li>
-                </ul>
-            </article>
+            </div>
 
-            <!-- 4. Análisis de Probabilidad de Colisiones -->
-            <article class="kpi-card" id="card-collision" data-color="purple">
-                <div class="kpi-card-header">
-                    <div class="kpi-icon kpi-icon--purple">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path
-                                d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-                            <line x1="12" y1="9" x2="12" y2="13" />
-                            <line x1="12" y1="17" x2="12.01" y2="17" />
-                        </svg>
-                    </div>
-                    <div class="kpi-title-group">
-                        <h2 class="kpi-title">Riesgo de Colisión</h2>
-                        <p class="kpi-subtitle">Eventos de riesgo detectados</p>
-                    </div>
-                    <div class="kpi-badge skeleton" id="badge-collision">—</div>
+            <!-- Unidades con llenado -->
+            <div class="stat-card" data-color="purple">
+                <div class="stat-icon stat-icon--purple">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h5l2 3v5h-7V8z"/>
+                        <circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
+                    </svg>
                 </div>
-                <div class="kpi-counter-row">
-                    <span class="kpi-counter kpi-counter--purple skeleton" id="count-collision">—</span>
-                    <span class="kpi-trend" id="trend-collision"></span>
+                <div class="stat-body">
+                    <div class="stat-label">Unidades</div>
+                    <div class="stat-value skeleton" id="stat-unidades">—</div>
+                    <div class="stat-sub">con llenados detectados</div>
                 </div>
-                <div class="kpi-detail-label">Unidad con mayor riesgo</div>
-                <div class="kpi-top-unit skeleton" id="top-collision">Cargando...</div>
-                <ul class="kpi-list" id="list-collision">
-                    <li class="kpi-list-skeleton"></li>
-                    <li class="kpi-list-skeleton"></li>
-                    <li class="kpi-list-skeleton"></li>
-                </ul>
-            </article>
+            </div>
 
-            <!-- 5. Rendimiento de Combustible -->
-            <article class="kpi-card" id="card-fuel" data-color="green">
-                <div class="kpi-card-header">
-                    <div class="kpi-icon kpi-icon--green">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M3 22V8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v14" />
-                            <path d="M19 22V12a2 2 0 0 0-2-2h-1" />
-                            <path d="M2 22h20" />
-                            <path d="M7 10v2" />
-                            <path d="M11 10v2" />
-                        </svg>
-                    </div>
-                    <div class="kpi-title-group">
-                        <h2 class="kpi-title">Rendimiento de Combustible</h2>
-                        <p class="kpi-subtitle">Consumo registrado (L)</p>
-                    </div>
-                    <div class="kpi-badge skeleton" id="badge-fuel">—</div>
+            <!-- Último llenado -->
+            <div class="stat-card" data-color="orange">
+                <div class="stat-icon stat-icon--orange">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                    </svg>
                 </div>
-                <div class="kpi-counter-row">
-                    <span class="kpi-counter kpi-counter--green skeleton" id="count-fuel">—</span>
-                    <span class="kpi-unit-label">litros</span>
-                    <span class="kpi-trend" id="trend-fuel"></span>
+                <div class="stat-body">
+                    <div class="stat-label">Último Llenado</div>
+                    <div class="stat-value stat-value--sm skeleton" id="stat-ultimo-fecha">—</div>
+                    <div class="stat-sub skeleton" id="stat-ultimo-unidad">—</div>
                 </div>
-                <div class="kpi-detail-label">Mayor consumidor</div>
-                <div class="kpi-top-unit skeleton" id="top-fuel">Cargando...</div>
-                <ul class="kpi-list" id="list-fuel">
-                    <li class="kpi-list-skeleton"></li>
-                    <li class="kpi-list-skeleton"></li>
-                    <li class="kpi-list-skeleton"></li>
-                </ul>
-            </article>
+            </div>
 
-            <!-- 6. Llenados Detectados -->
-            <article class="kpi-card" id="card-fillup" data-color="cyan">
-                <div class="kpi-card-header">
-                    <div class="kpi-icon kpi-icon--cyan">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M12 2a10 10 0 0 1 10 10c0 5-4 9-9 10a10 10 0 0 1 0-20z" />
-                            <path d="M12 6v6l4 2" />
+        </section>
+
+        <!-- ═══════════ MAIN CONTENT ═══════════ -->
+        <main class="main-content">
+
+            <!-- Left: Ranking de unidades -->
+            <section class="panel glass-panel ranking-panel">
+                <div class="panel-header">
+                    <div class="panel-title-group">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>
                         </svg>
+                        <span>Ranking por Unidad</span>
                     </div>
-                    <div class="kpi-title-group">
-                        <h2 class="kpi-title">Llenados Detectados</h2>
-                        <p class="kpi-subtitle">Transacciones de combustible</p>
-                    </div>
-                    <div class="kpi-badge skeleton" id="badge-fillup">—</div>
+                    <span class="panel-badge skeleton" id="badge-ranking">—</span>
                 </div>
-                <div class="kpi-counter-row">
-                    <span class="kpi-counter kpi-counter--cyan skeleton" id="count-fillup">—</span>
-                    <span class="kpi-trend" id="trend-fillup"></span>
-                </div>
-                <div class="kpi-detail-label">Último llenado registrado</div>
-                <div class="kpi-top-unit skeleton" id="top-fillup">Cargando...</div>
-                <ul class="kpi-list" id="list-fillup">
-                    <li class="kpi-list-skeleton"></li>
-                    <li class="kpi-list-skeleton"></li>
-                    <li class="kpi-list-skeleton"></li>
+                <ul class="ranking-list" id="ranking-list">
+                    <li class="ranking-skeleton"></li>
+                    <li class="ranking-skeleton"></li>
+                    <li class="ranking-skeleton"></li>
+                    <li class="ranking-skeleton"></li>
+                    <li class="ranking-skeleton"></li>
                 </ul>
-            </article>
+            </section>
+
+            <!-- Right: Tabla de eventos -->
+            <section class="panel glass-panel table-panel">
+                <div class="panel-header">
+                    <div class="panel-title-group">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/>
+                            <line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/>
+                        </svg>
+                        <span>Detalle de Llenados</span>
+                    </div>
+                    <div class="table-controls">
+                        <input type="text" id="search-input" class="search-input" placeholder="Buscar unidad...">
+                        <span class="panel-badge" id="badge-table">—</span>
+                    </div>
+                </div>
+                <div class="table-wrapper">
+                    <table class="fillup-table" id="fillup-table">
+                        <thead>
+                            <tr>
+                                <th class="col-unit">Unidad</th>
+                                <th class="col-date">Fecha y Hora</th>
+                                <th class="col-vol">Litros</th>
+                                <th class="col-odo">Odómetro</th>
+                                <th class="col-dur">Duración</th>
+                                <th class="col-tank">Tipo</th>
+                            </tr>
+                        </thead>
+                        <tbody id="fillup-tbody">
+                            <tr class="tr-skeleton"><td colspan="6"><div class="td-skel"></div></td></tr>
+                            <tr class="tr-skeleton"><td colspan="6"><div class="td-skel"></div></td></tr>
+                            <tr class="tr-skeleton"><td colspan="6"><div class="td-skel"></div></td></tr>
+                            <tr class="tr-skeleton"><td colspan="6"><div class="td-skel"></div></td></tr>
+                            <tr class="tr-skeleton"><td colspan="6"><div class="td-skel"></div></td></tr>
+                            <tr class="tr-skeleton"><td colspan="6"><div class="td-skel"></div></td></tr>
+                        </tbody>
+                    </table>
+                    <div class="table-empty" id="table-empty" style="display:none;">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                        </svg>
+                        <p>No se encontraron llenados en el periodo seleccionado.</p>
+                    </div>
+                </div>
+            </section>
 
         </main>
 
         <!-- Global Error Toast -->
         <div class="error-toast" id="error-toast" style="display:none;">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10" />
-                <line x1="12" y1="8" x2="12" y2="12" />
+                <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" />
                 <line x1="12" y1="16" x2="12.01" y2="16" />
             </svg>
             <span id="error-toast-msg">Error al cargar datos.</span>
