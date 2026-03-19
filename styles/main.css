@@ -672,9 +672,7 @@ body {
 .col-date { min-width: 150px; }
 .col-vol  { min-width: 90px; text-align: center; }
 .col-odo  { min-width: 110px; }
-.col-dur  { min-width: 80px; }
-.col-tank { min-width: 80px; }
-.col-loc  { min-width: 150px; }
+.col-loc  { min-width: 250px; }
 
 /* Unit chip */
 .unit-chip {
