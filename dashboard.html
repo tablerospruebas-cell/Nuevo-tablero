@@ -135,6 +135,55 @@
 
         </section>
 
+        <!-- ═══════════ CHARTS SECTION ═══════════ -->
+        <section class="charts-section">
+            <div class="chart-row">
+                <!-- Monthly Volume -->
+                <div class="chart-card glass-panel col-span-2">
+                    <div class="panel-header">
+                        <div class="panel-title-group">
+                            <i data-lucide="bar-chart" width="16" height="16" stroke-width="2"></i>
+                            <span>Litros Totales por Mes</span>
+                        </div>
+                    </div>
+                    <div id="chart-monthly" class="chart-container"></div>
+                </div>
+                <!-- Day of Week Volume -->
+                <div class="chart-card glass-panel">
+                    <div class="panel-header">
+                        <div class="panel-title-group">
+                            <i data-lucide="calendar" width="16" height="16" stroke-width="2"></i>
+                            <span>Actividad por Día</span>
+                        </div>
+                    </div>
+                    <div id="chart-dow" class="chart-container"></div>
+                </div>
+            </div>
+            
+            <div class="chart-row">
+                <!-- Volume Histogram -->
+                <div class="chart-card glass-panel">
+                    <div class="panel-header">
+                        <div class="panel-title-group">
+                            <i data-lucide="activity" width="16" height="16" stroke-width="2"></i>
+                            <span>Rangos de Llenado (Litros)</span>
+                        </div>
+                    </div>
+                    <div id="chart-histogram" class="chart-container"></div>
+                </div>
+                <!-- Heatmap -->
+                <div class="chart-card glass-panel col-span-2">
+                    <div class="panel-header">
+                        <div class="panel-title-group">
+                            <i data-lucide="grid" width="16" height="16" stroke-width="2"></i>
+                            <span>Mapa de Calor: Cargas por Hora y Día</span>
+                        </div>
+                    </div>
+                    <div id="chart-heatmap" class="chart-container"></div>
+                </div>
+            </div>
+        </section>
+
         <!-- ═══════════ MAIN CONTENT ═══════════ -->
         <main class="main-content">
 
@@ -270,6 +319,7 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="scripts/vendor.js"></script>
     <script src="scripts/main.js"></script>
