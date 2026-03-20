@@ -767,15 +767,11 @@ body {
 }
 
 .col-dir {
-    min-width: 250px;
-}
-
-.col-loc {
-    min-width: 130px;
+    min-width: 300px;
 }
 
 .col-map {
-    min-width: 100px;
+    min-width: 120px;
     text-align: center;
 }
 
