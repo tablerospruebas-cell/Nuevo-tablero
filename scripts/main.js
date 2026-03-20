@@ -74,6 +74,20 @@ geotab.addin.dashboard = function () {
             : (fillup.driver && fillup.driver.id && fillup.driver.id !== "UnknownDriverId" ? fillup.driver.id : "Desconocido");
     };
 
+    const getDistance = (lon1, lat1, lon2, lat2) => {
+        const R = 6371e3; // metres
+        const f1 = lat1 * Math.PI/180;
+        const f2 = lat2 * Math.PI/180;
+        const df = (lat2-lat1) * Math.PI/180;
+        const dl = (lon2-lon1) * Math.PI/180;
+
+        const a = Math.sin(df/2) * Math.sin(df/2) +
+                Math.cos(f1) * Math.cos(f2) *
+                Math.sin(dl/2) * Math.sin(dl/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        return R * c;
+    };
+
     const getFuelTypeLabel = (fillup) => {
         const ft = fillup.fuelType || fillup.tankCapacity || null;
         if (!ft) return "—";
@@ -250,7 +264,15 @@ geotab.addin.dashboard = function () {
                     <span class="vol-badge ${volClass}">${formatVolume(f.derivedVolume)}</span>
                 </td>
                 <td class="col-odo">${formatOdometer(f.odometer)}</td>
-                <td class="col-loc">${f.location ? JSON.stringify(f.location) : "—"}</td>
+                <td class="col-gas">
+                    <div style="display:flex; flex-direction:column;">
+                        <span style="font-weight:600; color:var(--text-main);">${f.nearestGasName || "—"}</span>
+                        <span class="date-time">${f.nearestGasDist !== undefined ? f.nearestGasDist : ""}</span>
+                    </div>
+                </td>
+                <td class="col-loc text-sm" style="color:var(--text-muted); font-size:0.8rem;">
+                    ${f.location ? `${f.location.y.toFixed(5)}, ${f.location.x.toFixed(5)}` : "—"}
+                </td>
             `;
             tbody.appendChild(tr);
         });
@@ -337,12 +359,12 @@ geotab.addin.dashboard = function () {
         // Table
         const tbody = document.getElementById("fillup-tbody");
         if (tbody) tbody.innerHTML = `
-            <tr class="tr-skeleton"><td colspan="6"><div class="td-skel"></div></td></tr>
-            <tr class="tr-skeleton"><td colspan="6"><div class="td-skel"></div></td></tr>
-            <tr class="tr-skeleton"><td colspan="6"><div class="td-skel"></div></td></tr>
-            <tr class="tr-skeleton"><td colspan="6"><div class="td-skel"></div></td></tr>
-            <tr class="tr-skeleton"><td colspan="6"><div class="td-skel"></div></td></tr>
-            <tr class="tr-skeleton"><td colspan="6"><div class="td-skel"></div></td></tr>
+            <tr class="tr-skeleton"><td colspan="7"><div class="td-skel"></div></td></tr>
+            <tr class="tr-skeleton"><td colspan="7"><div class="td-skel"></div></td></tr>
+            <tr class="tr-skeleton"><td colspan="7"><div class="td-skel"></div></td></tr>
+            <tr class="tr-skeleton"><td colspan="7"><div class="td-skel"></div></td></tr>
+            <tr class="tr-skeleton"><td colspan="7"><div class="td-skel"></div></td></tr>
+            <tr class="tr-skeleton"><td colspan="7"><div class="td-skel"></div></td></tr>
         `;
 
         const badgeTable = document.getElementById("badge-table");
@@ -384,19 +406,44 @@ geotab.addin.dashboard = function () {
 
         api.multiCall([
             ["Get", { typeName: "FillUp", search: { fromDate, toDate } }],
-            ["Get", { typeName: "Device" }]
+            ["Get", { typeName: "Device" }],
+            ["Get", { typeName: "Zone" }]
         ], (results) => {
             const result = results[0] || [];
             const devices = results[1] || [];
+            const zones = results[2] || [];
 
             // Map devices id -> name
             const deviceMap = {};
             devices.forEach(d => { deviceMap[d.id] = d.name; });
 
-            // Enrich fillups with real name
+            // Enrich fillups with real name and closest zone
             result.forEach(f => {
                 if (f.device && f.device.id && deviceMap[f.device.id]) {
                     f.device.name = deviceMap[f.device.id];
+                }
+
+                // Compute closest Zone as "gasolinera/gasera"
+                f.nearestGasName = "—";
+                f.nearestGasDist = undefined;
+                if (f.location && typeof f.location.x === "number" && typeof f.location.y === "number") {
+                    let minD = Infinity;
+                    let closestZ = null;
+                    zones.forEach(z => {
+                        if (z.points && z.points.length > 0) {
+                            const pt = z.points[0];
+                            const d = getDistance(f.location.x, f.location.y, pt.x, pt.y);
+                            if (d < minD) {
+                                minD = d;
+                                closestZ = z;
+                            }
+                        }
+                    });
+                    
+                    if (closestZ) {
+                        f.nearestGasName = closestZ.name;
+                        f.nearestGasDist = minD < 1000 ? `${Math.round(minD)} m` : `${(minD/1000).toFixed(1)} km`;
+                    }
                 }
             });
 
