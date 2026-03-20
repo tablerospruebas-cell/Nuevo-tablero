@@ -250,23 +250,7 @@ geotab.addin.dashboard = function () {
                     <span class="vol-badge ${volClass}">${formatVolume(f.derivedVolume)}</span>
                 </td>
                 <td class="col-odo">${formatOdometer(f.odometer)}</td>
-                <td class="col-loc">
-                    ${(() => {
-                        if (!f.location) return "—";
-                        let lat = f.location.y !== undefined ? f.location.y : f.location.latitude;
-                        let lng = f.location.x !== undefined ? f.location.x : f.location.longitude;
-                        if (lat !== undefined && lng !== undefined) {
-                            return `<button class="btn-location" data-lat="${lat}" data-lng="${lng}">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                                    <circle cx="12" cy="10" r="3"></circle>
-                                </svg>
-                                Ver Mapa
-                            </button>`;
-                        }
-                        return JSON.stringify(f.location);
-                    })()}
-                </td>
+                <td class="col-loc">${f.location ? JSON.stringify(f.location) : "—"}</td>
             `;
             tbody.appendChild(tr);
         });
@@ -530,43 +514,6 @@ geotab.addin.dashboard = function () {
             });
 
             dateFromInput.addEventListener("change", () => { dateToInput.min = dateFromInput.value; });
-
-            // ── Map Modal ─────────────────────────────────────────────────
-            const mapModal = document.getElementById("map-modal");
-            const mapIframe = document.getElementById("map-iframe");
-            const btnCloseMap = document.getElementById("btn-close-map");
-
-            if (btnCloseMap) {
-                btnCloseMap.addEventListener("click", () => {
-                    if (mapModal) mapModal.style.display = "none";
-                    if (mapIframe) mapIframe.src = "";
-                });
-            }
-
-            if (mapModal) {
-                mapModal.addEventListener("click", (e) => {
-                    if (e.target === mapModal) {
-                        mapModal.style.display = "none";
-                        if (mapIframe) mapIframe.src = "";
-                    }
-                });
-            }
-
-            const tbodyFillup = document.getElementById("fillup-tbody");
-            if (tbodyFillup) {
-                tbodyFillup.addEventListener("click", (e) => {
-                    const btn = e.target.closest(".btn-location");
-                    if (btn) {
-                        const lat = btn.getAttribute("data-lat");
-                        const lng = btn.getAttribute("data-lng");
-                        if (lat && lng && mapModal && mapIframe) {
-                            // Default format with Google Maps Satellite view
-                            mapIframe.src = `https://maps.google.com/maps?q=${lat},${lng}&t=k&z=17&ie=UTF8&iwloc=&output=embed`;
-                            mapModal.style.display = "flex";
-                        }
-                    }
-                });
-            }
 
             // ── Search box ────────────────────────────────────────────────
             if (searchInput) {
