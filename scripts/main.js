@@ -1,5 +1,23 @@
 "use strict";
 
+window.openMapModal = function(lat, lng) {
+    const modal = document.getElementById("map-modal");
+    const iframe = document.getElementById("map-iframe");
+    if (modal && iframe) {
+        iframe.src = `https://maps.google.com/maps?q=${lat},${lng}&t=m&z=15&output=embed`;
+        modal.classList.add("open");
+    }
+};
+
+window.closeMapModal = function() {
+    const modal = document.getElementById("map-modal");
+    const iframe = document.getElementById("map-iframe");
+    if (modal) {
+        modal.classList.remove("open");
+        setTimeout(() => { if (iframe) iframe.src = ""; }, 300);
+    }
+};
+
 geotab.addin.dashboard = function () {
     let api;
     let selectedDays = 7;
@@ -72,20 +90,6 @@ geotab.addin.dashboard = function () {
         return (fillup.driver && fillup.driver.name)
             ? fillup.driver.name
             : (fillup.driver && fillup.driver.id && fillup.driver.id !== "UnknownDriverId" ? fillup.driver.id : "Desconocido");
-    };
-
-    const getDistance = (lon1, lat1, lon2, lat2) => {
-        const R = 6371e3; // metres
-        const f1 = lat1 * Math.PI/180;
-        const f2 = lat2 * Math.PI/180;
-        const df = (lat2-lat1) * Math.PI/180;
-        const dl = (lon2-lon1) * Math.PI/180;
-
-        const a = Math.sin(df/2) * Math.sin(df/2) +
-                Math.cos(f1) * Math.cos(f2) *
-                Math.sin(dl/2) * Math.sin(dl/2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-        return R * c;
     };
 
     const getFuelTypeLabel = (fillup) => {
@@ -264,14 +268,11 @@ geotab.addin.dashboard = function () {
                     <span class="vol-badge ${volClass}">${formatVolume(f.derivedVolume)}</span>
                 </td>
                 <td class="col-odo">${formatOdometer(f.odometer)}</td>
-                <td class="col-gas">
-                    <div style="display:flex; flex-direction:column;">
-                        <span style="font-weight:600; color:var(--text-main);">${f.nearestGasName || "—"}</span>
-                        <span class="date-time">${f.nearestGasDist !== undefined ? f.nearestGasDist : ""}</span>
-                    </div>
+                <td class="col-dir">
+                    <span class="address-text" title="${f.addressString || ""}">${f.addressString || "—"}</span>
                 </td>
-                <td class="col-loc text-sm" style="color:var(--text-muted); font-size:0.8rem;">
-                    ${f.location ? `${f.location.y.toFixed(5)}, ${f.location.x.toFixed(5)}` : "—"}
+                <td class="col-map">
+                    ${f.location ? `<button class="btn-map" onclick="window.openMapModal(${f.location.y}, ${f.location.x})"><i data-lucide="map-pin" width="14" height="14"></i> Ver Mapa</button>` : "—"}
                 </td>
             `;
             tbody.appendChild(tr);
@@ -406,62 +407,71 @@ geotab.addin.dashboard = function () {
 
         api.multiCall([
             ["Get", { typeName: "FillUp", search: { fromDate, toDate } }],
-            ["Get", { typeName: "Device" }],
-            ["Get", { typeName: "Zone" }]
+            ["Get", { typeName: "Device" }]
         ], (results) => {
             const result = results[0] || [];
             const devices = results[1] || [];
-            const zones = results[2] || [];
 
             // Map devices id -> name
             const deviceMap = {};
             devices.forEach(d => { deviceMap[d.id] = d.name; });
 
-            // Enrich fillups with real name and closest zone
-            result.forEach(f => {
+            const validCoords = [];
+            const coordsMap = [];
+            
+            // Enrich fillups with real name and prepare coords
+            result.forEach((f, idx) => {
                 if (f.device && f.device.id && deviceMap[f.device.id]) {
                     f.device.name = deviceMap[f.device.id];
                 }
-
-                // Compute closest Zone as "gasolinera/gasera"
-                f.nearestGasName = "—";
-                f.nearestGasDist = undefined;
+                
+                f.addressString = "—";
                 if (f.location && typeof f.location.x === "number" && typeof f.location.y === "number") {
-                    let minD = Infinity;
-                    let closestZ = null;
-                    zones.forEach(z => {
-                        if (z.points && z.points.length > 0) {
-                            const pt = z.points[0];
-                            const d = getDistance(f.location.x, f.location.y, pt.x, pt.y);
-                            if (d < minD) {
-                                minD = d;
-                                closestZ = z;
-                            }
-                        }
-                    });
-                    
-                    if (closestZ) {
-                        f.nearestGasName = closestZ.name;
-                        f.nearestGasDist = minD < 1000 ? `${Math.round(minD)} m` : `${(minD/1000).toFixed(1)} km`;
-                    }
+                    f.addressString = "Calculando...";
+                    validCoords.push({ x: f.location.x, y: f.location.y });
+                    coordsMap.push(idx);
                 }
             });
 
-            allFillups = result;
-            filteredFillups = [...allFillups];
+            const finalize = () => {
+                allFillups = result;
+                filteredFillups = [...allFillups];
 
-            renderSummary(allFillups);
-            renderRanking(allFillups);
-            renderTable(filteredFillups);
-            renderRawTable(filteredFillups);
+                renderSummary(allFillups);
+                renderRanking(allFillups);
+                renderTable(filteredFillups);
+                renderRawTable(filteredFillups);
+                if (window.lucide) {
+                    lucide.createIcons();
+                }
 
-            const now = new Date();
-            lastUpdatedEl.textContent = `Actualizado: ${now.toLocaleTimeString("es-MX", {
-                hour: "2-digit", minute: "2-digit", second: "2-digit"
-            })}`;
+                const now = new Date();
+                lastUpdatedEl.textContent = `Actualizado: ${now.toLocaleTimeString("es-MX", {
+                    hour: "2-digit", minute: "2-digit", second: "2-digit"
+                })}`;
 
-            btnRefresh.disabled = false;
-            btnRefresh.classList.remove("loading");
+                btnRefresh.disabled = false;
+                btnRefresh.classList.remove("loading");
+            };
+
+            if (validCoords.length > 0) {
+                // Fetch addresses for all valid coordinates
+                api.call("GetAddresses", { coordinates: validCoords }, (addresses) => {
+                    addresses.forEach((addr, i) => {
+                        const idx = coordsMap[i];
+                        if (addr && addr.formattedAddress) {
+                            result[idx].addressString = addr.formattedAddress;
+                        }
+                    });
+                    finalize();
+                }, (err) => {
+                    console.error("Geocoding failed:", err);
+                    finalize();
+                });
+            } else {
+                finalize();
+            }
+
         }, (err) => {
             console.error("Error fetching data:", err);
             showError("Error al cargar los datos. Verifique la conexión.");
