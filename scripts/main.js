@@ -428,6 +428,11 @@ geotab.addin.dashboard = function () {
         initialize: function (_api, state, callback) {
             api = _api;
 
+            // Initialize Lucide icons
+            if (window.lucide) {
+                lucide.createIcons();
+            }
+
             btnRefresh = document.getElementById("btn-refresh");
             lastUpdatedEl = document.getElementById("last-updated-time");
             errorToast = document.getElementById("error-toast");
@@ -446,14 +451,12 @@ geotab.addin.dashboard = function () {
                     const btnCustom = document.getElementById("btn-custom");
                     if (btnCustom) {
                         btnCustom.innerHTML = `
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                                <line x1="16" y1="2" x2="16" y2="6"/>
-                                <line x1="8" y1="2" x2="8" y2="6"/>
-                                <line x1="3" y1="10" x2="21" y2="10"/>
-                            </svg>
+                            <i data-lucide="calendar" width="13" height="13" stroke-width="2.5"></i>
                             Personalizado
                         `;
+                        if (window.lucide) {
+                            lucide.createIcons();
+                        }
                     }
                     loadData();
                 });
@@ -494,14 +497,12 @@ geotab.addin.dashboard = function () {
 
                 const fmt = (s) => new Date(s + "T12:00:00").toLocaleDateString("es-MX", { day: "2-digit", month: "short" });
                 btnCustom.innerHTML = `
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                        <line x1="16" y1="2" x2="16" y2="6"/>
-                        <line x1="8" y1="2" x2="8" y2="6"/>
-                        <line x1="3" y1="10" x2="21" y2="10"/>
-                    </svg>
+                    <i data-lucide="calendar" width="13" height="13" stroke-width="2.5"></i>
                     ${fmt(from)} – ${fmt(to)}
                 `;
+                if (window.lucide) {
+                    lucide.createIcons();
+                }
 
                 document.querySelectorAll(".btn-range").forEach(b => b.classList.remove("active"));
                 btnCustom.classList.add("active");
