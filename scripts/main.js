@@ -268,9 +268,6 @@ geotab.addin.dashboard = function () {
                     <span class="vol-badge ${volClass}">${formatVolume(f.derivedVolume)}</span>
                 </td>
                 <td class="col-odo">${formatOdometer(f.odometer)}</td>
-                <td class="col-dir">
-                    <span class="address-text" title="${f.addressString || ""}">${f.addressString || "—"}</span>
-                </td>
                 <td class="col-map">
                     ${f.location ? `<button class="btn-map" onclick="window.openMapModal(${f.location.y}, ${f.location.x})"><i data-lucide="map-pin" width="14" height="14"></i> Ver Mapa</button>` : "—"}
                 </td>
@@ -360,12 +357,12 @@ geotab.addin.dashboard = function () {
         // Table
         const tbody = document.getElementById("fillup-tbody");
         if (tbody) tbody.innerHTML = `
-            <tr class="tr-skeleton"><td colspan="7"><div class="td-skel"></div></td></tr>
-            <tr class="tr-skeleton"><td colspan="7"><div class="td-skel"></div></td></tr>
-            <tr class="tr-skeleton"><td colspan="7"><div class="td-skel"></div></td></tr>
-            <tr class="tr-skeleton"><td colspan="7"><div class="td-skel"></div></td></tr>
-            <tr class="tr-skeleton"><td colspan="7"><div class="td-skel"></div></td></tr>
-            <tr class="tr-skeleton"><td colspan="7"><div class="td-skel"></div></td></tr>
+            <tr class="tr-skeleton"><td colspan="6"><div class="td-skel"></div></td></tr>
+            <tr class="tr-skeleton"><td colspan="6"><div class="td-skel"></div></td></tr>
+            <tr class="tr-skeleton"><td colspan="6"><div class="td-skel"></div></td></tr>
+            <tr class="tr-skeleton"><td colspan="6"><div class="td-skel"></div></td></tr>
+            <tr class="tr-skeleton"><td colspan="6"><div class="td-skel"></div></td></tr>
+            <tr class="tr-skeleton"><td colspan="6"><div class="td-skel"></div></td></tr>
         `;
 
         const badgeTable = document.getElementById("badge-table");
@@ -416,62 +413,31 @@ geotab.addin.dashboard = function () {
             const deviceMap = {};
             devices.forEach(d => { deviceMap[d.id] = d.name; });
 
-            const validCoords = [];
-            const coordsMap = [];
-            
-            // Enrich fillups with real name and prepare coords
-            result.forEach((f, idx) => {
+            result.forEach((f) => {
                 if (f.device && f.device.id && deviceMap[f.device.id]) {
                     f.device.name = deviceMap[f.device.id];
                 }
-                
-                f.addressString = "—";
-                if (f.location && typeof f.location.x === "number" && typeof f.location.y === "number") {
-                    f.addressString = "Calculando...";
-                    validCoords.push({ x: f.location.x, y: f.location.y });
-                    coordsMap.push(idx);
-                }
             });
 
-            const finalize = () => {
-                allFillups = result;
-                filteredFillups = [...allFillups];
+            allFillups = result;
+            filteredFillups = [...allFillups];
 
-                renderSummary(allFillups);
-                renderRanking(allFillups);
-                renderTable(filteredFillups);
-                renderRawTable(filteredFillups);
-                if (window.lucide) {
-                    lucide.createIcons();
-                }
+            renderSummary(allFillups);
+            renderRanking(allFillups);
+            renderTable(filteredFillups);
+            renderRawTable(filteredFillups);
 
-                const now = new Date();
-                lastUpdatedEl.textContent = `Actualizado: ${now.toLocaleTimeString("es-MX", {
-                    hour: "2-digit", minute: "2-digit", second: "2-digit"
-                })}`;
-
-                btnRefresh.disabled = false;
-                btnRefresh.classList.remove("loading");
-            };
-
-            if (validCoords.length > 0) {
-                // Fetch addresses for all valid coordinates
-                api.call("GetAddresses", { coordinates: validCoords }, (addresses) => {
-                    addresses.forEach((addr, i) => {
-                        const idx = coordsMap[i];
-                        if (addr && addr.formattedAddress) {
-                            result[idx].addressString = addr.formattedAddress;
-                        }
-                    });
-                    finalize();
-                }, (err) => {
-                    console.error("Geocoding failed:", err);
-                    finalize();
-                });
-            } else {
-                finalize();
+            if (window.lucide) {
+                lucide.createIcons();
             }
 
+            const now = new Date();
+            lastUpdatedEl.textContent = `Actualizado: ${now.toLocaleTimeString("es-MX", {
+                hour: "2-digit", minute: "2-digit", second: "2-digit"
+            })}`;
+
+            btnRefresh.disabled = false;
+            btnRefresh.classList.remove("loading");
         }, (err) => {
             console.error("Error fetching data:", err);
             showError("Error al cargar los datos. Verifique la conexión.");
