@@ -766,8 +766,12 @@ body {
     min-width: 110px;
 }
 
+.col-gas {
+    min-width: 160px;
+}
+
 .col-loc {
-    min-width: 250px;
+    min-width: 180px;
 }
 
 /* Unit chip */
