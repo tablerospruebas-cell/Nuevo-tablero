@@ -250,9 +250,40 @@ geotab.addin.dashboard = function () {
                     <span class="vol-badge ${volClass}">${formatVolume(f.derivedVolume)}</span>
                 </td>
                 <td class="col-odo">${formatOdometer(f.odometer)}</td>
-                <td class="col-loc">${f.location ? JSON.stringify(f.location) : "—"}</td>
+                <td class="col-loc">
+                    ${(f.location && f.location.x && f.location.y) 
+                        ? `<button class="btn-location" data-lat="${f.location.y}" data-lng="${f.location.x}" data-unit="${getDeviceName(f)}">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                                    <circle cx="12" cy="10" r="3" />
+                                </svg>
+                                Ver Mapa
+                           </button>` 
+                        : (f.location ? JSON.stringify(f.location) : "—")
+                    }
+                </td>
             `;
             tbody.appendChild(tr);
+        });
+        
+        bindLocationButtons();
+    };
+
+    const bindLocationButtons = () => {
+        document.querySelectorAll('.btn-location').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const lat = btn.getAttribute('data-lat');
+                const lng = btn.getAttribute('data-lng');
+                const unit = btn.getAttribute('data-unit');
+                
+                const mapModal = document.getElementById("map-modal");
+                const mapIframe = document.getElementById("map-iframe");
+                const modalTitle = document.getElementById("map-modal-title");
+                
+                if (modalTitle) modalTitle.textContent = `Ubicación: ${unit}`;
+                if (mapIframe) mapIframe.src = `https://maps.google.com/maps?q=${lat},${lng}&hl=es&z=16&t=k&output=embed`;
+                if (mapModal) mapModal.style.display = "flex";
+            });
         });
     };
 
@@ -525,6 +556,24 @@ geotab.addin.dashboard = function () {
             }
 
             btnRefresh.addEventListener("click", () => { loadData(); });
+
+            // ── Modal listeners ───────────────────────────────────────────
+            const mapModal = document.getElementById("map-modal");
+            const btnCloseMap = document.getElementById("btn-close-map");
+            const mapIframe = document.getElementById("map-iframe");
+
+            if (btnCloseMap && mapModal) {
+                btnCloseMap.addEventListener("click", () => {
+                    mapModal.style.display = "none";
+                    if (mapIframe) mapIframe.src = "";
+                });
+                mapModal.addEventListener("click", (e) => {
+                    if (e.target === mapModal) {
+                        mapModal.style.display = "none";
+                        if (mapIframe) mapIframe.src = "";
+                    }
+                });
+            }
 
             callback();
         },
