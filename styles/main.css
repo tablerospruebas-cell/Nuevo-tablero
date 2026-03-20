@@ -766,10 +766,6 @@ body {
     min-width: 110px;
 }
 
-.col-dir {
-    min-width: 300px;
-}
-
 .col-map {
     min-width: 120px;
     text-align: center;
@@ -793,18 +789,6 @@ body {
 .col-map .btn-map:hover {
     background: var(--c-cyan);
     color: #fff;
-}
-
-.address-text {
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: var(--color-text-main);
-    white-space: normal;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
 }
 
 /* Modal System */
