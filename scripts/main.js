@@ -1,6 +1,6 @@
 "use strict";
 
-window.openMapModal = function (lat, lng) {
+window.openMapModal = function(lat, lng) {
     const modal = document.getElementById("map-modal");
     const iframe = document.getElementById("map-iframe");
     if (modal && iframe) {
@@ -9,7 +9,7 @@ window.openMapModal = function (lat, lng) {
     }
 };
 
-window.closeMapModal = function () {
+window.closeMapModal = function() {
     const modal = document.getElementById("map-modal");
     const iframe = document.getElementById("map-iframe");
     if (modal) {
@@ -26,7 +26,7 @@ geotab.addin.dashboard = function () {
     let isCustomRange = false;
     let allFillups = [];       // All raw FillUp records
     let filteredFillups = [];  // After search filter
-
+    
     // Chart instances
     let chartMonthly, chartDow, chartHeatmap;
     let chartInterval = "day"; // "day", "week", "month"
@@ -252,10 +252,10 @@ geotab.addin.dashboard = function () {
             const tr = document.createElement("tr");
             tr.className = "hover:bg-slate-50/50 transition-colors group";
             const vol = parseFloat(f.derivedVolume) || 0;
-            const volClass = vol > 50
-                ? "bg-emerald-50 text-emerald-600"
-                : vol > 20
-                    ? "bg-amber-50 text-amber-600"
+            const volClass = vol > 50 
+                ? "bg-emerald-50 text-emerald-600" 
+                : vol > 20 
+                    ? "bg-amber-50 text-amber-600" 
                     : "bg-slate-50 text-slate-600";
 
             tr.innerHTML = `
@@ -404,12 +404,12 @@ geotab.addin.dashboard = function () {
 
         // 1. Monthly Volume (Area Chart) - now dynamic by interval
         const groupedData = {};
-
+        
         fillups.forEach(f => {
             if (!f.dateTime) return;
             const d = new Date(f.dateTime);
             let key;
-
+            
             if (chartInterval === "day") {
                 key = d.toISOString().slice(0, 10);
             } else if (chartInterval === "week") {
@@ -421,13 +421,13 @@ geotab.addin.dashboard = function () {
             } else {
                 key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
             }
-
+            
             groupedData[key] = (groupedData[key] || 0) + (parseFloat(f.derivedVolume) || 0);
         });
-
+        
         const sortedKeys = Object.keys(groupedData).sort();
         const intervalSeries = sortedKeys.map(k => Math.round(groupedData[k]));
-
+        
         // Format labels for display
         const categories = sortedKeys.map(k => {
             if (chartInterval === "day") return k.slice(5); // MM-DD
@@ -437,7 +437,7 @@ geotab.addin.dashboard = function () {
             }
             return k; // YYYY-MM
         });
-
+        
         const optMonthly = {
             ...commonOptions,
             series: [{ name: 'Litros', data: intervalSeries }],
@@ -465,7 +465,7 @@ geotab.addin.dashboard = function () {
         const dowLabels = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
         const shiftedDowData = [dowData[1], dowData[2], dowData[3], dowData[4], dowData[5], dowData[6], dowData[0]];
         const dowSeries = shiftedDowData.map(v => Math.round(v));
-
+        
         const optDow = {
             ...commonOptions,
             series: [{ name: 'Litros Totales', data: dowSeries }],
@@ -482,7 +482,7 @@ geotab.addin.dashboard = function () {
         chartDow.render();
 
         // 4. Heatmap: Cargas por Hora y Día
-        const heatmapGrid = Array.from({ length: 7 }, () => Array(24).fill(0));
+        const heatmapGrid = Array.from({length: 7}, () => Array(24).fill(0));
         fillups.forEach(f => {
             if (!f.dateTime) return;
             const d = new Date(f.dateTime);
@@ -495,7 +495,7 @@ geotab.addin.dashboard = function () {
         const seriesHeatmap = dowLabels.map((dayLabel, dayIdx) => {
             return {
                 name: dayLabel,
-                data: Array.from({ length: 24 }, (_, hourIdx) => ({
+                data: Array.from({length: 24}, (_, hourIdx) => ({
                     x: hourIdx.toString().padStart(2, '0') + 'h',
                     y: heatmapGrid[dayIdx][hourIdx]
                 }))
@@ -713,14 +713,14 @@ geotab.addin.dashboard = function () {
                     document.querySelectorAll(".btn-interval").forEach(b => b.classList.remove("active"));
                     btn.classList.add("active");
                     chartInterval = btn.dataset.interval;
-
+                    
                     // Update label
                     const labelEl = document.getElementById("label-monthly-chart");
                     if (labelEl) {
                         const labels = { "day": "Litros por Día", "week": "Litros por Semana", "month": "Litros por Mes" };
                         labelEl.textContent = labels[chartInterval] || "Litros Totales";
                     }
-
+                    
                     renderCharts(filteredFillups);
                 });
             });
