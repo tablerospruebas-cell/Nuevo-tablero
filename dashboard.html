@@ -138,48 +138,33 @@
         <!-- ═══════════ CHARTS SECTION ═══════════ -->
         <section class="charts-section">
             <div class="chart-row">
-                <!-- Monthly Volume -->
-                <div class="chart-card glass-panel col-span-2">
+                <!-- Activity Chart with Filters -->
+                <div class="chart-card glass-panel col-span-3">
                     <div class="panel-header">
                         <div class="panel-title-group">
                             <i data-lucide="bar-chart" width="16" height="16" stroke-width="2"></i>
-                            <span>Litros Totales por Mes</span>
+                            <span id="activity-chart-title">Actividad por Día promedio de carga por día</span>
+                        </div>
+                        <div class="header-filters" id="activity-filters">
+                            <button class="btn-filter active" data-view="day">Día</button>
+                            <button class="btn-filter" data-view="week">Semana</button>
+                            <button class="btn-filter" data-view="month">Mes</button>
                         </div>
                     </div>
-                    <div id="chart-monthly" class="chart-container"></div>
+                    <div id="chart-activity" class="chart-container" style="height: 350px;"></div>
                 </div>
-                <!-- Day of Week Volume -->
-                <div class="chart-card glass-panel">
-                    <div class="panel-header">
-                        <div class="panel-title-group">
-                            <i data-lucide="calendar" width="16" height="16" stroke-width="2"></i>
-                            <span>Actividad por Día</span>
-                        </div>
-                    </div>
-                    <div id="chart-dow" class="chart-container"></div>
-                </div>
-            </div>
-            
+
+
             <div class="chart-row">
-                <!-- Volume Histogram -->
-                <div class="chart-card glass-panel">
-                    <div class="panel-header">
-                        <div class="panel-title-group">
-                            <i data-lucide="activity" width="16" height="16" stroke-width="2"></i>
-                            <span>Rangos de Llenado (Litros)</span>
-                        </div>
-                    </div>
-                    <div id="chart-histogram" class="chart-container"></div>
-                </div>
                 <!-- Heatmap -->
-                <div class="chart-card glass-panel col-span-2">
+                <div class="chart-card glass-panel col-span-3">
                     <div class="panel-header">
                         <div class="panel-title-group">
                             <i data-lucide="grid" width="16" height="16" stroke-width="2"></i>
                             <span>Mapa de Calor: Cargas por Hora y Día</span>
                         </div>
                     </div>
-                    <div id="chart-heatmap" class="chart-container"></div>
+                    <div id="chart-heatmap" class="chart-container" style="height: 350px;"></div>
                 </div>
             </div>
         </section>
@@ -307,7 +292,8 @@
                     </button>
                 </div>
                 <div class="modal-body" style="padding:0;">
-                    <iframe id="map-iframe" width="100%" height="450" frameborder="0" style="border:0;" allowfullscreen></iframe>
+                    <iframe id="map-iframe" width="100%" height="450" frameborder="0" style="border:0;"
+                        allowfullscreen></iframe>
                 </div>
             </div>
         </div>
