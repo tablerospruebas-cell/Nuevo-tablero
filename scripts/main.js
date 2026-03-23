@@ -1,23 +1,5 @@
 "use strict";
 
-window.openMapModal = function (lat, lng) {
-    const modal = document.getElementById("map-modal");
-    const iframe = document.getElementById("map-iframe");
-    if (modal && iframe) {
-        iframe.src = `https://maps.google.com/maps?q=${lat},${lng}&t=m&z=15&output=embed`;
-        modal.classList.add("open");
-    }
-};
-
-window.closeMapModal = function () {
-    const modal = document.getElementById("map-modal");
-    const iframe = document.getElementById("map-iframe");
-    if (modal) {
-        modal.classList.remove("open");
-        setTimeout(() => { if (iframe) iframe.src = ""; }, 300);
-    }
-};
-
 geotab.addin.dashboard = function () {
     let api;
     let selectedDays = 7;
@@ -29,9 +11,6 @@ geotab.addin.dashboard = function () {
 
     // ─── DOM refs ────────────────────────────────────────────────────────────
     let btnRefresh, lastUpdatedEl, errorToast, errorToastMsg, searchInput;
-    let activityChart = null;
-    let heatmapChart = null;
-    let currentChartView = "day"; // day, week, month
 
     // ─── Helpers ─────────────────────────────────────────────────────────────
     const getDateRange = () => {
@@ -271,11 +250,40 @@ geotab.addin.dashboard = function () {
                     <span class="vol-badge ${volClass}">${formatVolume(f.derivedVolume)}</span>
                 </td>
                 <td class="col-odo">${formatOdometer(f.odometer)}</td>
-                <td class="col-map">
-                    ${f.location ? `<button class="btn-map" onclick="window.openMapModal(${f.location.y}, ${f.location.x})"><i data-lucide="map-pin" width="14" height="14"></i> Ver Mapa</button>` : "—"}
+                <td class="col-loc">
+                    ${(f.location && f.location.x && f.location.y) 
+                        ? `<button class="btn-location" data-lat="${f.location.y}" data-lng="${f.location.x}" data-unit="${getDeviceName(f)}">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                                    <circle cx="12" cy="10" r="3" />
+                                </svg>
+                                Ver Mapa
+                           </button>` 
+                        : (f.location ? JSON.stringify(f.location) : "—")
+                    }
                 </td>
             `;
             tbody.appendChild(tr);
+        });
+        
+        bindLocationButtons();
+    };
+
+    const bindLocationButtons = () => {
+        document.querySelectorAll('.btn-location').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const lat = btn.getAttribute('data-lat');
+                const lng = btn.getAttribute('data-lng');
+                const unit = btn.getAttribute('data-unit');
+                
+                const mapModal = document.getElementById("map-modal");
+                const mapIframe = document.getElementById("map-iframe");
+                const modalTitle = document.getElementById("map-modal-title");
+                
+                if (modalTitle) modalTitle.textContent = `Ubicación: ${unit}`;
+                if (mapIframe) mapIframe.src = `https://maps.google.com/maps?q=${lat},${lng}&hl=es&z=16&t=k&output=embed`;
+                if (mapModal) mapModal.style.display = "flex";
+            });
         });
     };
 
@@ -296,7 +304,7 @@ geotab.addin.dashboard = function () {
         fillups.forEach(f => {
             Object.keys(f).forEach(k => keySet.add(k));
         });
-
+        
         // Sort keys alphabetically but prioritize common ones
         const priorityKeys = ["device", "dateTime", "derivedVolume", "location", "odometer"];
         const columns = Array.from(keySet).sort((a, b) => {
@@ -333,129 +341,6 @@ geotab.addin.dashboard = function () {
             });
             tbody.appendChild(tr);
         });
-    };
-
-    // ─── Render Charts ───────────────────────────────────────────────────────
-    const renderCharts = (fillups) => {
-        if (!window.ApexCharts) {
-            console.error("ApexCharts not loaded");
-            return;
-        }
-        const activityContainer = document.getElementById("chart-activity");
-        const heatmapContainer = document.getElementById("chart-heatmap");
-        if (!activityContainer || !heatmapContainer) return;
-
-        if (!fillups || fillups.length === 0) {
-            activityContainer.innerHTML = '<div class="ranking-empty">Sin datos para graficar</div>';
-            heatmapContainer.innerHTML = '<div class="ranking-empty">Sin datos para graficar</div>';
-            return;
-        }
-
-
-        // 1. Data Aggregation for Activity Chart
-        const dataByGroup = {};
-        fillups.forEach(f => {
-            if (!f.dateTime) return;
-            const date = new Date(f.dateTime);
-            if (isNaN(date.getTime())) return; // Skip invalid dates
-
-            let groupKey;
-            if (currentChartView === "day") {
-                groupKey = date.toISOString().split("T")[0];
-            } else if (currentChartView === "week") {
-                const d = new Date(date);
-                const day = d.getDay();
-                const diff = d.getDate() - day;
-                d.setDate(diff);
-                groupKey = d.toISOString().split("T")[0];
-            } else {
-                groupKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-01`;
-            }
-            dataByGroup[groupKey] = (dataByGroup[groupKey] || 0) + (parseFloat(f.derivedVolume) || 0);
-        });
-
-        const sortedKeys = Object.keys(dataByGroup).sort();
-        if (sortedKeys.length === 0) {
-            activityContainer.innerHTML = '<div class="ranking-empty">Sin datos válidos para graficar</div>';
-            return;
-        }
-        const categories = sortedKeys.map(k => {
-            if (currentChartView === "day") return k.split("-").slice(1).reverse().join("/");
-            if (currentChartView === "week") return "Sem " + k.split("-").slice(1).reverse().join("/");
-            const d = new Date(k + "T00:00:00");
-            return d.toLocaleDateString("es-MX", { month: "short", year: "2-digit" });
-        });
-        const seriesData = sortedKeys.map(k => parseFloat(dataByGroup[k].toFixed(1)));
-
-        // Update Title
-        const titleEl = document.getElementById("activity-chart-title");
-        if (titleEl) {
-            const viewLabels = { day: "Día", week: "Semana", month: "Mes" };
-            titleEl.textContent = `Actividad por ${viewLabels[currentChartView]} promedio de carga por ${currentChartView === "day" ? "día" : currentChartView === "week" ? "semana" : "mes"}`;
-        }
-
-        // Activity Chart Options
-        const activityOptions = {
-            series: [{ name: "Litros", data: seriesData }],
-            chart: {
-                type: "area",
-                height: 350,
-                toolbar: { show: false },
-                zoom: { enabled: false },
-                fontFamily: "Inter, sans-serif"
-            },
-            colors: ["#003666"],
-            fill: {
-                type: "gradient",
-                gradient: { shadeIntensity: 1, opacityFrom: 0.45, opacityTo: 0.05, stops: [20, 100] }
-            },
-            dataLabels: { enabled: false },
-            stroke: { curve: "smooth", width: 3 },
-            xaxis: { categories: categories, labels: { style: { fontSize: "10px", colors: "#64748b" } } },
-            yaxis: { labels: { style: { fontSize: "10px", colors: "#64748b" } } },
-            grid: { borderColor: "#f1f5f9", strokeDashArray: 4 },
-            tooltip: { theme: "light" }
-        };
-
-        if (activityChart) {
-            activityChart.updateOptions(activityOptions);
-        } else {
-            activityContainer.innerHTML = ""; // Clear any messages
-            activityChart = new ApexCharts(activityContainer, activityOptions);
-            activityChart.render();
-        }
-
-
-        // 2. Heatmap Data (Hour vs Day of Week)
-        const heatmapData = Array.from({ length: 7 }, (_, i) => ({
-            name: ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"][i],
-            data: Array.from({ length: 24 }, (_, h) => ({ x: `${h}h`, y: 0 }))
-        }));
-
-        fillups.forEach(f => {
-            const d = new Date(f.dateTime);
-            const day = d.getDay();
-            const hour = d.getHours();
-            heatmapData[day].data[hour].y++;
-        });
-
-        const heatmapOptions = {
-            series: heatmapData,
-            chart: { type: "heatmap", height: 350, toolbar: { show: false }, fontFamily: "Inter, sans-serif" },
-            dataLabels: { enabled: false },
-            colors: ["#003666"],
-            xaxis: { labels: { style: { fontSize: "10px", colors: "#64748b" } } },
-            yaxis: { labels: { style: { fontSize: "10px", colors: "#64748b" } } },
-            tooltip: { theme: "light" }
-        };
-
-        if (heatmapChart) {
-            heatmapChart.updateOptions(heatmapOptions);
-        } else {
-            heatmapContainer.innerHTML = ""; // Clear any messages
-            heatmapChart = new ApexCharts(heatmapContainer, heatmapOptions);
-            heatmapChart.render();
-        }
     };
 
     // ─── Reset UI ─────────────────────────────────────────────────────────────
@@ -539,7 +424,8 @@ geotab.addin.dashboard = function () {
             const deviceMap = {};
             devices.forEach(d => { deviceMap[d.id] = d.name; });
 
-            result.forEach((f) => {
+            // Enrich fillups with real name
+            result.forEach(f => {
                 if (f.device && f.device.id && deviceMap[f.device.id]) {
                     f.device.name = deviceMap[f.device.id];
                 }
@@ -552,11 +438,6 @@ geotab.addin.dashboard = function () {
             renderRanking(allFillups);
             renderTable(filteredFillups);
             renderRawTable(filteredFillups);
-            renderCharts(allFillups);
-
-            if (window.lucide) {
-                lucide.createIcons();
-            }
 
             const now = new Date();
             lastUpdatedEl.textContent = `Actualizado: ${now.toLocaleTimeString("es-MX", {
@@ -578,11 +459,6 @@ geotab.addin.dashboard = function () {
         initialize: function (_api, state, callback) {
             api = _api;
 
-            // Initialize Lucide icons
-            if (window.lucide) {
-                lucide.createIcons();
-            }
-
             btnRefresh = document.getElementById("btn-refresh");
             lastUpdatedEl = document.getElementById("last-updated-time");
             errorToast = document.getElementById("error-toast");
@@ -601,24 +477,16 @@ geotab.addin.dashboard = function () {
                     const btnCustom = document.getElementById("btn-custom");
                     if (btnCustom) {
                         btnCustom.innerHTML = `
-                            <i data-lucide="calendar" width="13" height="13" stroke-width="2.5"></i>
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                                <line x1="16" y1="2" x2="16" y2="6"/>
+                                <line x1="8" y1="2" x2="8" y2="6"/>
+                                <line x1="3" y1="10" x2="21" y2="10"/>
+                            </svg>
                             Personalizado
                         `;
-                        if (window.lucide) {
-                            lucide.createIcons();
-                        }
                     }
                     loadData();
-                });
-            });
-
-            // ── Chart filter buttons ─────────────────────────────────────
-            document.querySelectorAll(".btn-filter").forEach(btn => {
-                btn.addEventListener("click", () => {
-                    document.querySelectorAll(".btn-filter").forEach(b => b.classList.remove("active"));
-                    btn.classList.add("active");
-                    currentChartView = btn.dataset.view;
-                    renderCharts(allFillups);
                 });
             });
 
@@ -657,12 +525,14 @@ geotab.addin.dashboard = function () {
 
                 const fmt = (s) => new Date(s + "T12:00:00").toLocaleDateString("es-MX", { day: "2-digit", month: "short" });
                 btnCustom.innerHTML = `
-                    <i data-lucide="calendar" width="13" height="13" stroke-width="2.5"></i>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                        <line x1="16" y1="2" x2="16" y2="6"/>
+                        <line x1="8" y1="2" x2="8" y2="6"/>
+                        <line x1="3" y1="10" x2="21" y2="10"/>
+                    </svg>
                     ${fmt(from)} – ${fmt(to)}
                 `;
-                if (window.lucide) {
-                    lucide.createIcons();
-                }
 
                 document.querySelectorAll(".btn-range").forEach(b => b.classList.remove("active"));
                 btnCustom.classList.add("active");
@@ -686,6 +556,24 @@ geotab.addin.dashboard = function () {
             }
 
             btnRefresh.addEventListener("click", () => { loadData(); });
+
+            // ── Modal listeners ───────────────────────────────────────────
+            const mapModal = document.getElementById("map-modal");
+            const btnCloseMap = document.getElementById("btn-close-map");
+            const mapIframe = document.getElementById("map-iframe");
+
+            if (btnCloseMap && mapModal) {
+                btnCloseMap.addEventListener("click", () => {
+                    mapModal.style.display = "none";
+                    if (mapIframe) mapIframe.src = "";
+                });
+                mapModal.addEventListener("click", (e) => {
+                    if (e.target === mapModal) {
+                        mapModal.style.display = "none";
+                        if (mapIframe) mapIframe.src = "";
+                    }
+                });
+            }
 
             callback();
         },
