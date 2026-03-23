@@ -89,6 +89,9 @@ body {
 .glass-panel {
     background: var(--color-bg-panel);
     border: 1px solid var(--color-panel-border);
+    backdrop-filter: blur(12px) saturate(180%);
+    -webkit-backdrop-filter: blur(12px) saturate(180%);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.05);
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -355,19 +358,31 @@ body {
 }
 
 .stat-card {
-    flex: 1 1 160px;
+    flex: 1 1 200px;
     background: var(--color-bg-surface);
     border: 1px solid var(--color-panel-border);
     border-radius: var(--radius-xl);
-    padding: 1.1rem 1.25rem;
+    padding: 1.25rem 1.5rem;
     display: flex;
     align-items: center;
-    gap: 0.875rem;
-    box-shadow: var(--shadow-lg);
-    transition: transform 0.2s ease;
+    gap: 1.25rem;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     overflow: hidden;
 }
+
+.stat-card::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 100px;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05));
+    pointer-events: none;
+}
+
 
 .stat-card:hover {
     transform: translateY(-2px);
@@ -502,15 +517,49 @@ body {
 }
 
 .chart-container {
-    padding: 1rem;
-    height: 300px;
+    padding: 1.5rem;
+    height: 350px;
     width: 100%;
 }
+
+.header-filters {
+    display: flex;
+    gap: 0.5rem;
+    background: var(--color-bg-main);
+    padding: 0.25rem;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-panel-border);
+}
+
+.btn-filter {
+    background: transparent;
+    border: none;
+    padding: 0.35rem 0.85rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-filter.active {
+    background: var(--color-primary);
+    color: #fff;
+    box-shadow: 0 4px 12px var(--color-primary-glow);
+}
+
+.btn-filter:hover:not(.active) {
+    background: var(--color-panel-border);
+    color: var(--color-text-main);
+}
+
 
 @media (max-width: 1024px) {
     .chart-row {
         grid-template-columns: 1fr;
     }
+
     .chart-card.col-span-2 {
         grid-column: span 1;
     }
@@ -837,7 +886,10 @@ body {
 /* Modal System */
 .modal-overlay {
     position: fixed;
-    top: 0; left: 0; width: 100%; height: 100%;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
     background: rgba(0, 30, 50, 0.6);
     backdrop-filter: blur(4px);
     z-index: 1000;
