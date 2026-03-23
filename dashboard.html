@@ -12,306 +12,310 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles/vendor.css">
     <link rel="stylesheet" href="styles/main.css">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: '#003666',
-                        secondary: '#00b1e1',
-                        accent: '#3b753c',
-                        surface: '#f8fafc',
-                    }
-                }
-            }
-        }
-    </script>
 </head>
 
 <body>
-    <div id="app-dashboard" class="min-h-screen bg-slate-50 font-['Inter'] text-slate-800">
+    <div id="app-dashboard">
 
         <!-- ═══════════ HEADER ═══════════ -->
-        <header class="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 bg-white/80 px-6 py-4 backdrop-blur-md">
-            <div class="flex items-center gap-3">
-                <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50">
-                    <i data-lucide="fuel" width="24" height="24" class="text-blue-900" stroke-width="2.5"></i>
-                </div>
+        <header class="top-nav glass-panel">
+            <div class="nav-brand">
+                <i data-lucide="fuel" width="30" height="30" stroke="var(--color-primary)" stroke-width="2"></i>
                 <div>
-                    <h1 class="text-xl font-bold tracking-tight text-blue-900">Llenados Detectados</h1>
-                    <p class="text-xs font-medium text-slate-500">Geotab Fuel Monitoring</p>
+                    <h1>Llenados Detectados</h1>
                 </div>
             </div>
 
-            <div class="flex flex-wrap items-center gap-4">
+            <div class="nav-controls">
                 <!-- Date Range Buttons -->
-                <div class="flex items-center gap-1 rounded-lg bg-slate-100 p-1" id="date-range-group">
-                    <button class="btn-range px-4 py-1.5 text-sm font-semibold rounded-md transition-all duration-200 active bg-white text-blue-900 shadow-sm" data-days="7" id="btn-7d">7 d</button>
-                    <button class="btn-range px-4 py-1.5 text-sm font-semibold rounded-md transition-all duration-200 text-slate-600 hover:bg-white/50" data-days="15" id="btn-15d">15 d</button>
-                    <button class="btn-range px-4 py-1.5 text-sm font-semibold rounded-md transition-all duration-200 text-slate-600 hover:bg-white/50" data-days="30" id="btn-30d">30 d</button>
-                    <button class="btn-range flex items-center gap-1.5 px-4 py-1.5 text-sm font-semibold rounded-md transition-all duration-200 text-slate-600 hover:bg-white/50" id="btn-custom">
-                        <i data-lucide="calendar" width="14" height="14"></i>
+                <div class="date-range-group" id="date-range-group">
+                    <button class="btn-range active" data-days="7" id="btn-7d">7 días</button>
+                    <button class="btn-range" data-days="15" id="btn-15d">15 días</button>
+                    <button class="btn-range" data-days="30" id="btn-30d">30 días</button>
+                    <button class="btn-range btn-range--custom" id="btn-custom">
+                        <i data-lucide="calendar" width="13" height="13" stroke-width="2.5"></i>
                         Personalizado
                     </button>
                 </div>
 
                 <!-- Custom Date Popover -->
-                <div class="date-popover absolute top-20 right-6 hidden w-72 origin-top-right rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl transition-all" id="date-popover">
-                    <div class="mb-4 text-sm font-bold text-slate-900">Rango de Fechas</div>
-                    <div class="space-y-4">
-                        <div class="space-y-1.5">
-                            <label for="date-from" class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Desde</label>
-                            <input type="date" id="date-from" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none">
+                <div class="date-popover glass-panel" id="date-popover">
+                    <div class="date-popover-header">Rango de Fechas</div>
+                    <div class="date-popover-fields">
+                        <div class="date-field">
+                            <label for="date-from">Desde</label>
+                            <input type="date" id="date-from" class="date-input">
                         </div>
-                        <div class="space-y-1.5">
-                            <label for="date-to" class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Hasta</label>
-                            <input type="date" id="date-to" class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none">
+                        <div class="date-field">
+                            <label for="date-to">Hasta</label>
+                            <input type="date" id="date-to" class="date-input">
                         </div>
                     </div>
-                    <div class="mt-6 flex gap-3">
-                        <button class="flex-1 rounded-lg border border-slate-200 px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-50" id="btn-date-cancel">Cancelar</button>
-                        <button class="flex-1 rounded-lg bg-blue-900 px-4 py-2 text-sm font-bold text-white hover:bg-blue-800" id="btn-date-apply">Aplicar</button>
+                    <div class="date-popover-footer">
+                        <button class="btn-popover-cancel" id="btn-date-cancel">Cancelar</button>
+                        <button class="btn-popover-apply" id="btn-date-apply">
+                            <i data-lucide="check" width="13" height="13" stroke-width="2.5"></i>
+                            Aplicar
+                        </button>
                     </div>
                 </div>
 
                 <!-- Refresh -->
-                <button id="btn-refresh" class="flex items-center gap-2 rounded-lg bg-blue-900 px-4 py-2 text-sm font-bold text-white transition-all hover:bg-blue-800 hover:shadow-lg active:scale-95 disabled:opacity-50" title="Refrescar datos">
-                    <i data-lucide="refresh-cw" width="16" height="16"></i>
+                <button id="btn-refresh" class="btn-refresh" title="Refrescar datos">
+                    <i data-lucide="refresh-cw" width="18" height="18" stroke-width="2.5"></i>
                     <span>Refrescar</span>
                 </button>
 
-                <div class="h-8 w-px bg-slate-200"></div>
-                <span class="text-xs font-medium text-slate-500" id="last-updated-time">Actualizado: --:--</span>
+                <span class="last-updated" id="last-updated-time">Actualizado: --:--</span>
             </div>
         </header>
 
-        <!-- ═══════════ KPI STRIP ═══════════ -->
-        <section class="grid grid-cols-1 gap-4 p-6 sm:grid-cols-2 lg:grid-cols-5">
+        <!-- ═══════════ SUMMARY KPI STRIP ═══════════ -->
+        <section class="summary-strip">
+
             <!-- Total Llenados -->
-            <div class="group relative overflow-hidden rounded-2xl border border-white bg-white p-5 shadow-sm transition-all hover:shadow-md">
-                <div class="absolute -right-4 -top-4 h-16 w-16 rounded-full bg-sky-50 transition-transform group-hover:scale-150"></div>
-                <div class="relative flex items-center gap-4">
-                    <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-sky-100 text-sky-600">
-                        <i data-lucide="fuel" width="24" height="24"></i>
-                    </div>
-                    <div>
-                        <div class="text-xs font-bold uppercase tracking-wider text-slate-400">Total Llenados</div>
-                        <div class="text-2xl font-black text-slate-900" id="stat-total">—</div>
-                        <div class="text-[10px] font-bold text-sky-500" id="stat-total-badge">— días</div>
-                    </div>
+            <div class="stat-card" data-color="cyan">
+                <div class="stat-icon stat-icon--cyan">
+                    <i data-lucide="fuel" stroke-width="2"></i>
+                </div>
+                <div class="stat-body">
+                    <div class="stat-label">Total Llenados</div>
+                    <div class="stat-value skeleton" id="stat-total">—</div>
+                    <div class="stat-sub" id="stat-total-badge">— días</div>
                 </div>
             </div>
 
             <!-- Total Litros -->
-            <div class="group relative overflow-hidden rounded-2xl border border-white bg-white p-5 shadow-sm transition-all hover:shadow-md">
-                <div class="absolute -right-4 -top-4 h-16 w-16 rounded-full bg-emerald-50 transition-transform group-hover:scale-150"></div>
-                <div class="relative flex items-center gap-4">
-                    <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600">
-                        <i data-lucide="droplet" width="24" height="24"></i>
-                    </div>
-                    <div>
-                        <div class="text-xs font-bold uppercase tracking-wider text-slate-400">Total Litros</div>
-                        <div class="text-2xl font-black text-slate-900" id="stat-litros">—</div>
-                        <div class="text-[10px] font-bold text-emerald-500">litros cargados</div>
-                    </div>
+            <div class="stat-card" data-color="green">
+                <div class="stat-icon stat-icon--green">
+                    <i data-lucide="droplet" stroke-width="2"></i>
+                </div>
+                <div class="stat-body">
+                    <div class="stat-label">Total Litros</div>
+                    <div class="stat-value skeleton" id="stat-litros">—</div>
+                    <div class="stat-sub">litros cargados</div>
                 </div>
             </div>
 
-            <!-- Promedio -->
-            <div class="group relative overflow-hidden rounded-2xl border border-white bg-white p-5 shadow-sm transition-all hover:shadow-md">
-                <div class="absolute -right-4 -top-4 h-16 w-16 rounded-full bg-indigo-50 transition-transform group-hover:scale-150"></div>
-                <div class="relative flex items-center gap-4">
-                    <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-100 text-indigo-600">
-                        <i data-lucide="bar-chart-2" width="24" height="24"></i>
-                    </div>
-                    <div>
-                        <div class="text-xs font-bold uppercase tracking-wider text-slate-400">Promedio / Llenado</div>
-                        <div class="text-2xl font-black text-slate-900" id="stat-promedio">—</div>
-                        <div class="text-[10px] font-bold text-indigo-500">litros en promedio</div>
-                    </div>
+            <!-- Promedio por llenado -->
+            <div class="stat-card" data-color="blue">
+                <div class="stat-icon stat-icon--blue">
+                    <i data-lucide="bar-chart-2" stroke-width="2"></i>
+                </div>
+                <div class="stat-body">
+                    <div class="stat-label">Promedio / Llenado</div>
+                    <div class="stat-value skeleton" id="stat-promedio">—</div>
+                    <div class="stat-sub">litros en promedio</div>
                 </div>
             </div>
 
-            <!-- Unidades -->
-            <div class="group relative overflow-hidden rounded-2xl border border-white bg-white p-5 shadow-sm transition-all hover:shadow-md">
-                <div class="absolute -right-4 -top-4 h-16 w-16 rounded-full bg-purple-50 transition-transform group-hover:scale-150"></div>
-                <div class="relative flex items-center gap-4">
-                    <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-100 text-purple-600">
-                        <i data-lucide="truck" width="24" height="24"></i>
-                    </div>
-                    <div>
-                        <div class="text-xs font-bold uppercase tracking-wider text-slate-400">Unidades</div>
-                        <div class="text-2xl font-black text-slate-900" id="stat-unidades">—</div>
-                        <div class="text-[10px] font-bold text-purple-500">con actividad</div>
-                    </div>
+            <!-- Unidades con llenado -->
+            <div class="stat-card" data-color="purple">
+                <div class="stat-icon stat-icon--purple">
+                    <i data-lucide="truck" stroke-width="2"></i>
+                </div>
+                <div class="stat-body">
+                    <div class="stat-label">Unidades</div>
+                    <div class="stat-value skeleton" id="stat-unidades">—</div>
+                    <div class="stat-sub">con llenados detectados</div>
                 </div>
             </div>
 
-            <!-- Último -->
-            <div class="group relative overflow-hidden rounded-2xl border border-white bg-white p-5 shadow-sm transition-all hover:shadow-md">
-                <div class="absolute -right-4 -top-4 h-16 w-16 rounded-full bg-orange-50 transition-transform group-hover:scale-150"></div>
-                <div class="relative flex items-center gap-4">
-                    <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-100 text-orange-600">
-                        <i data-lucide="clock" width="24" height="24"></i>
-                    </div>
-                    <div>
-                        <div class="text-xs font-bold uppercase tracking-wider text-slate-400">Último Llenado</div>
-                        <div class="text-lg font-black leading-tight text-slate-900" id="stat-ultimo-fecha">—</div>
-                        <div class="truncate text-[10px] font-bold text-orange-500" id="stat-ultimo-unidad">—</div>
-                    </div>
+            <!-- Último llenado -->
+            <div class="stat-card" data-color="orange">
+                <div class="stat-icon stat-icon--orange">
+                    <i data-lucide="clock" stroke-width="2"></i>
+                </div>
+                <div class="stat-body">
+                    <div class="stat-label">Último Llenado</div>
+                    <div class="stat-value stat-value--sm skeleton" id="stat-ultimo-fecha">—</div>
+                    <div class="stat-sub skeleton" id="stat-ultimo-unidad">—</div>
                 </div>
             </div>
+
         </section>
 
         <!-- ═══════════ CHARTS SECTION ═══════════ -->
-        <section class="grid grid-cols-1 gap-6 px-6 lg:grid-cols-3">
-            <!-- Litros Totales -->
-            <div class="rounded-2xl border border-white bg-white p-6 shadow-sm lg:col-span-2">
-                <div class="mb-6 flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                        <i data-lucide="bar-chart" width="18" height="18" class="text-blue-900"></i>
-                        <h3 class="text-sm font-bold text-slate-900" id="label-monthly-chart">Litros por Día</h3>
+        <section class="charts-section">
+            <div class="chart-row">
+                <!-- Monthly Volume -->
+                <div class="chart-card glass-panel col-span-2">
+                    <div class="panel-header">
+                        <div class="panel-title-group">
+                            <i data-lucide="bar-chart" width="16" height="16" stroke-width="2"></i>
+                            <span>Litros Totales por Mes</span>
+                        </div>
                     </div>
-                    <div class="flex items-center gap-1 rounded-lg bg-slate-100 p-1">
-                        <button class="btn-interval active h-7 rounded-md bg-white px-3 text-xs font-bold text-blue-900 shadow-sm" data-interval="day">Día</button>
-                        <button class="btn-interval h-7 rounded-md px-3 text-xs font-bold text-slate-500 hover:text-slate-900" data-interval="week">Semana</button>
-                        <button class="btn-interval h-7 rounded-md px-3 text-xs font-bold text-slate-500 hover:text-slate-900" data-interval="month">Mes</button>
+                    <div id="chart-monthly" class="chart-container"></div>
+                </div>
+                <!-- Day of Week Volume -->
+                <div class="chart-card glass-panel">
+                    <div class="panel-header">
+                        <div class="panel-title-group">
+                            <i data-lucide="calendar" width="16" height="16" stroke-width="2"></i>
+                            <span>Actividad por Día</span>
+                        </div>
                     </div>
+                    <div id="chart-dow" class="chart-container"></div>
                 </div>
-                <div id="chart-monthly" class="h-64"></div>
             </div>
-
-            <!-- Actividad por Día -->
-            <div class="rounded-2xl border border-white bg-white p-6 shadow-sm">
-                <div class="mb-6 flex items-center gap-2">
-                    <i data-lucide="calendar" width="18" height="18" class="text-blue-900"></i>
-                    <h3 class="text-sm font-bold text-slate-900 leading-tight">Actividad por Día promedio de carga por día</h3>
+            
+            <div class="chart-row">
+                <!-- Volume Histogram -->
+                <div class="chart-card glass-panel">
+                    <div class="panel-header">
+                        <div class="panel-title-group">
+                            <i data-lucide="activity" width="16" height="16" stroke-width="2"></i>
+                            <span>Rangos de Llenado (Litros)</span>
+                        </div>
+                    </div>
+                    <div id="chart-histogram" class="chart-container"></div>
                 </div>
-                <div id="chart-dow" class="h-64"></div>
-            </div>
-
-            <!-- Heatmap - Full Width -->
-            <div class="rounded-2xl border border-white bg-white p-6 shadow-sm lg:col-span-3">
-                <div class="mb-6 flex items-center gap-2">
-                    <i data-lucide="grid" width="18" height="18" class="text-blue-900"></i>
-                    <h3 class="text-sm font-bold text-slate-900">Mapa de Calor: Cargas por Hora y Día</h3>
+                <!-- Heatmap -->
+                <div class="chart-card glass-panel col-span-2">
+                    <div class="panel-header">
+                        <div class="panel-title-group">
+                            <i data-lucide="grid" width="16" height="16" stroke-width="2"></i>
+                            <span>Mapa de Calor: Cargas por Hora y Día</span>
+                        </div>
+                    </div>
+                    <div id="chart-heatmap" class="chart-container"></div>
                 </div>
-                <div id="chart-heatmap" class="h-64"></div>
             </div>
         </section>
 
-        <!-- ═══════════ TABLES SECTION ═══════════ -->
-        <section class="grid grid-cols-1 gap-6 p-6 lg:grid-cols-4">
-            <!-- Ranking -->
-            <div class="rounded-2xl border border-white bg-white p-6 shadow-sm lg:col-span-1">
-                <div class="mb-6 flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                        <i data-lucide="trending-up" width="18" height="18" class="text-blue-900"></i>
-                        <h3 class="text-sm font-bold text-slate-900">Ranking</h3>
-                    </div>
-                    <span class="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-black uppercase text-blue-600" id="badge-ranking">—</span>
-                </div>
-                <ul class="space-y-4" id="ranking-list">
-                    <!-- Dynamic -->
-                    <li class="h-10 w-full animate-pulse rounded bg-slate-100"></li>
-                    <li class="h-10 w-full animate-pulse rounded bg-slate-100"></li>
-                </ul>
-            </div>
+        <!-- ═══════════ MAIN CONTENT ═══════════ -->
+        <main class="main-content">
 
-            <!-- Main Table -->
-            <div class="rounded-2xl border border-white bg-white shadow-sm lg:col-span-3">
-                <div class="flex items-center justify-between border-b border-slate-50 p-6">
-                    <div class="flex items-center gap-2">
-                        <i data-lucide="table" width="18" height="18" class="text-blue-900"></i>
-                        <h3 class="text-sm font-bold text-slate-900">Detalle de Llenados</h3>
+            <!-- Left: Ranking de unidades -->
+            <section class="panel glass-panel ranking-panel">
+                <div class="panel-header">
+                    <div class="panel-title-group">
+                        <i data-lucide="trending-up" width="16" height="16" stroke-width="2"></i>
+                        <span>Ranking por Unidad</span>
                     </div>
-                    <div class="flex items-center gap-3">
-                        <div class="relative">
-                            <i data-lucide="search" width="14" height="14" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                            <input type="text" id="search-input" class="rounded-full border border-slate-200 bg-slate-50 py-1.5 pl-9 pr-4 text-xs focus:border-blue-500 focus:outline-none" placeholder="Buscar unidad...">
-                        </div>
-                        <span class="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-black uppercase text-blue-600" id="badge-table">—</span>
+                    <span class="panel-badge skeleton" id="badge-ranking">—</span>
+                </div>
+                <ul class="ranking-list" id="ranking-list">
+                    <li class="ranking-skeleton"></li>
+                    <li class="ranking-skeleton"></li>
+                    <li class="ranking-skeleton"></li>
+                    <li class="ranking-skeleton"></li>
+                    <li class="ranking-skeleton"></li>
+                </ul>
+            </section>
+
+            <!-- Right: Tabla de eventos -->
+            <section class="panel glass-panel table-panel">
+                <div class="panel-header">
+                    <div class="panel-title-group">
+                        <i data-lucide="table" width="16" height="16" stroke-width="2"></i>
+                        <span>Detalle de Llenados</span>
+                    </div>
+                    <div class="table-controls">
+                        <input type="text" id="search-input" class="search-input" placeholder="Buscar unidad...">
+                        <span class="panel-badge" id="badge-table">—</span>
                     </div>
                 </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-sm" id="fillup-table">
-                        <thead class="bg-slate-50/50 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                <div class="table-wrapper">
+                    <table class="fillup-table" id="fillup-table">
+                        <thead>
                             <tr>
-                                <th class="px-6 py-3">Unidad</th>
-                                <th class="px-6 py-3">Conductor</th>
-                                <th class="px-6 py-3">Fecha y Hora</th>
-                                <th class="px-6 py-3">Litros</th>
-                                <th class="px-6 py-3">Odómetro</th>
-                                <th class="px-6 py-3 text-right">Mapa</th>
+                                <th class="col-unit">Unidad</th>
+                                <th class="col-driver">Conductor</th>
+                                <th class="col-date">Fecha y Hora</th>
+                                <th class="col-vol">Litros</th>
+                                <th class="col-odo">Odómetro</th>
+                                <th class="col-map">Mapa</th>
                             </tr>
                         </thead>
-                        <tbody id="fillup-tbody" class="divide-y divide-slate-100">
-                            <!-- Dynamic -->
+                        <tbody id="fillup-tbody">
+                            <tr class="tr-skeleton">
+                                <td colspan="6">
+                                    <div class="td-skel"></div>
+                                </td>
+                            </tr>
+                            <tr class="tr-skeleton">
+                                <td colspan="6">
+                                    <div class="td-skel"></div>
+                                </td>
+                            </tr>
+                            <tr class="tr-skeleton">
+                                <td colspan="6">
+                                    <div class="td-skel"></div>
+                                </td>
+                            </tr>
+                            <tr class="tr-skeleton">
+                                <td colspan="6">
+                                    <div class="td-skel"></div>
+                                </td>
+                            </tr>
+                            <tr class="tr-skeleton">
+                                <td colspan="6">
+                                    <div class="td-skel"></div>
+                                </td>
+                            </tr>
+                            <tr class="tr-skeleton">
+                                <td colspan="6">
+                                    <div class="td-skel"></div>
+                                </td>
+                            </tr>
                         </tbody>
                     </table>
-                    <div class="flex flex-col items-center justify-center p-12 text-center" id="table-empty" style="display:none;">
-                        <div class="mb-3 flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-50 text-slate-300">
-                            <i data-lucide="search" width="32" height="32"></i>
-                        </div>
-                        <p class="text-sm font-bold text-slate-900">No se encontraron llenados</p>
-                        <p class="text-xs text-slate-400">Prueba con otro rango o término de búsqueda</p>
+                    <div class="table-empty" id="table-empty" style="display:none;">
+                        <i data-lucide="search" width="40" height="40" stroke-width="1.5"></i>
+                        <p>No se encontraron llenados en el periodo seleccionado.</p>
                     </div>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- ═══════════ RAW DATA TABLE ═══════════ -->
+        <section class="raw-data-panel panel glass-panel">
+            <div class="panel-header">
+                <div class="panel-title-group">
+                    <i data-lucide="list" width="16" height="16" stroke-width="2"></i>
+                    <span>Datos Completos (Crudos)</span>
                 </div>
             </div>
-        </section>
-
-        <!-- Raw Data -->
-        <section class="px-6 pb-6">
-            <div class="overflow-hidden rounded-2xl border border-white bg-white shadow-sm">
-                <div class="border-b border-slate-50 p-4">
-                    <div class="flex items-center gap-2">
-                        <i data-lucide="list" width="16" height="16" class="text-blue-900"></i>
-                        <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider">Datos Completos (Crudos)</h3>
-                    </div>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-[11px] text-slate-600" id="raw-table">
-                        <thead id="raw-thead" class="bg-slate-50 text-[10px] font-bold uppercase text-slate-400">
-                            <tr><th class="px-4 py-2">Cargando...</th></tr>
-                        </thead>
-                        <tbody id="raw-tbody" class="divide-y divide-slate-50">
-                            <!-- Dynamic -->
-                        </tbody>
-                    </table>
-                </div>
+            <div class="table-wrapper raw-table-wrapper">
+                <table class="fillup-table raw-table" id="raw-table">
+                    <thead id="raw-thead">
+                        <tr>
+                            <th>Cargando...</th>
+                        </tr>
+                    </thead>
+                    <tbody id="raw-tbody">
+                        <tr class="tr-skeleton">
+                            <td>
+                                <div class="td-skel"></div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </section>
 
         <!-- Map Modal -->
-        <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm transition-all opacity-0 pointer-events-none" id="map-modal">
-            <div class="w-full max-w-3xl overflow-hidden rounded-3xl border border-white bg-white shadow-2xl transition-all scale-95">
-                <div class="flex items-center justify-between border-b border-slate-50 px-6 py-4">
-                    <div class="flex items-center gap-2">
-                        <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
-                            <i data-lucide="map-pin" width="18" height="18"></i>
-                        </div>
-                        <h3 class="font-bold text-slate-900">Ubicación del Llenado</h3>
-                    </div>
-                    <button class="rounded-lg p-2 transition-colors hover:bg-slate-100" onclick="window.closeMapModal()">
+        <div class="modal-overlay" id="map-modal">
+            <div class="modal-content glass-panel" style="width:90%; max-width:800px;">
+                <div class="modal-header">
+                    <h3>Ubicación del Llenado</h3>
+                    <button class="btn-close" onclick="window.closeMapModal()">
                         <i data-lucide="x" width="20" height="20"></i>
                     </button>
                 </div>
-                <div class="aspect-video bg-slate-100">
-                    <iframe id="map-iframe" width="100%" height="100%" frameborder="0" style="border:0;" allowfullscreen></iframe>
+                <div class="modal-body" style="padding:0;">
+                    <iframe id="map-iframe" width="100%" height="450" frameborder="0" style="border:0;" allowfullscreen></iframe>
                 </div>
             </div>
         </div>
 
-        <!-- Error Toast -->
-        <div class="fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-2xl border border-red-100 bg-white p-4 shadow-2xl shadow-red-100/50" id="error-toast" style="display:none;">
-            <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50 text-red-600">
-                <i data-lucide="alert-circle" width="20" height="20"></i>
-            </div>
-            <div>
-                <div class="text-sm font-bold text-slate-900">Error detectado</div>
-                <p id="error-toast-msg" class="text-xs text-red-500 font-medium"></p>
-            </div>
+        <!-- Global Error Toast -->
+        <div class="error-toast" id="error-toast" style="display:none;">
+            <i data-lucide="alert-circle" width="16" height="16" stroke-width="2"></i>
+            <span id="error-toast-msg">Error al cargar datos.</span>
         </div>
     </div>
 
