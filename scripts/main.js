@@ -602,11 +602,27 @@ geotab.addin.dashboard = function () {
 
     // ─── Chart Logic ──────────────────────────────────────────────────────────
     function initCharts() {
+        const textColor = '#5e6c84'; // matches --color-text-muted
         const commonOptions = {
             chart: { height: '100%', toolbar: { show: false }, animations: { enabled: true } },
             colors: ['#003666', '#00b1e1', '#3b753c', '#f29300', '#cc0000'],
             dataLabels: { enabled: false },
-            grid: { borderColor: '#f1f5f9' }
+            grid: { borderColor: '#f1f5f9' },
+            xaxis: {
+                labels: {
+                    show: true,
+                    hideOverlappingLabels: true,
+                    style: { colors: textColor, fontSize: '11px', fontWeight: 500 }
+                },
+                axisBorder: { show: false },
+                axisTicks: { show: false }
+            },
+            yaxis: {
+                labels: {
+                    show: true,
+                    style: { colors: textColor, fontSize: '11px' }
+                }
+            }
         };
 
         // Monthly Trend
@@ -614,8 +630,12 @@ geotab.addin.dashboard = function () {
             ...commonOptions,
             chart: { ...commonOptions.chart, type: 'area', sparkline: { enabled: false } },
             series: [{ name: 'Litros', data: [] }],
-            xaxis: { type: 'category', labels: { style: { fontSize: '10px' } } },
-            stroke: { curve: 'smooth', width: 2 },
+            xaxis: {
+                ...commonOptions.xaxis,
+                type: 'category',
+                labels: { ...commonOptions.xaxis.labels, rotate: -45, rotateAlways: false }
+            },
+            stroke: { curve: 'straight', width: 2 },
             fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.45, opacityTo: 0.05 } }
         });
 
@@ -625,7 +645,10 @@ geotab.addin.dashboard = function () {
             chart: { ...commonOptions.chart, type: 'bar' },
             series: [{ name: 'Litros', data: [] }],
             plotOptions: { bar: { borderRadius: 4, columnWidth: '60%' } },
-            xaxis: { categories: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'] }
+            xaxis: {
+                ...commonOptions.xaxis,
+                categories: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
+            }
         });
 
         // Histogram
@@ -634,7 +657,10 @@ geotab.addin.dashboard = function () {
             chart: { ...commonOptions.chart, type: 'bar' },
             series: [{ name: 'Cargas', data: [] }],
             plotOptions: { bar: { borderRadius: 4, horizontal: false } },
-            xaxis: { title: { text: 'Rango (L)' } }
+            xaxis: {
+                ...commonOptions.xaxis,
+                title: { text: 'Rango (L)', style: { color: textColor, fontSize: '10px' } }
+            }
         });
 
         // Heatmap
@@ -655,7 +681,10 @@ geotab.addin.dashboard = function () {
                     }
                 }
             },
-            xaxis: { labels: { show: true } }
+            xaxis: {
+                ...commonOptions.xaxis,
+                labels: { ...commonOptions.xaxis.labels, show: true }
+            }
         });
 
         Object.values(charts).forEach(c => c.render());
