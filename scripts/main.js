@@ -4,7 +4,7 @@ window.openMapModal = function(lat, lng) {
     const modal = document.getElementById("map-modal");
     const iframe = document.getElementById("map-iframe");
     if (modal && iframe) {
-        iframe.src = `https://maps.google.com/maps?q=${lat},${lng}&t=m&z=18&output=embed`;
+        iframe.src = `https://maps.google.com/maps?q=${lat},${lng}&t=m&z=15&output=embed`;
         modal.classList.add("open");
     }
 };
@@ -26,10 +26,6 @@ geotab.addin.dashboard = function () {
     let isCustomRange = false;
     let allFillups = [];       // All raw FillUp records
     let filteredFillups = [];  // After search filter
-    
-    // Chart instances
-    let chartMonthly, chartDow, chartHeatmap;
-    let chartInterval = "day"; // "day", "week", "month"
 
     // ─── DOM refs ────────────────────────────────────────────────────────────
     let btnRefresh, lastUpdatedEl, errorToast, errorToastMsg, searchInput;
@@ -210,18 +206,18 @@ geotab.addin.dashboard = function () {
         items.forEach((item, idx) => {
             const pct = Math.round((item.count / maxCount) * 100);
             const li = document.createElement("li");
-            li.className = "flex items-center gap-3 group";
+            li.className = "ranking-item";
             li.innerHTML = `
-                <div class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[10px] font-black text-slate-500 group-hover:bg-blue-600 group-hover:text-white transition-colors">${idx + 1}</div>
-                <div class="flex-1 min-w-0">
-                    <div class="text-[11px] font-bold text-slate-700 truncate">${item.name}</div>
-                    <div class="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
-                        <div class="h-full rounded-full bg-blue-600 transition-all duration-1000" style="width:${pct}%"></div>
+                <div class="ranking-pos">${idx + 1}</div>
+                <div class="ranking-info">
+                    <div class="ranking-name">${item.name}</div>
+                    <div class="ranking-bar-wrap">
+                        <div class="ranking-bar" style="width:${pct}%"></div>
                     </div>
                 </div>
-                <div class="flex flex-col items-end shrink-0">
-                    <span class="text-[11px] font-black text-slate-900">${item.count}</span>
-                    <span class="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">${item.litros.toFixed(0)} L</span>
+                <div class="ranking-stats">
+                    <span class="ranking-count">${item.count}</span>
+                    <span class="ranking-liters">${item.litros.toFixed(0)} L</span>
                 </div>
             `;
             ul.appendChild(li);
@@ -250,34 +246,30 @@ geotab.addin.dashboard = function () {
 
         sorted.forEach(f => {
             const tr = document.createElement("tr");
-            tr.className = "hover:bg-slate-50/50 transition-colors group";
+            tr.className = "fillup-row";
             const vol = parseFloat(f.derivedVolume) || 0;
-            const volClass = vol > 50 
-                ? "bg-emerald-50 text-emerald-600" 
-                : vol > 20 
-                    ? "bg-amber-50 text-amber-600" 
-                    : "bg-slate-50 text-slate-600";
+            const volClass = vol > 50 ? "vol-high" : vol > 20 ? "vol-mid" : "vol-low";
 
             tr.innerHTML = `
-                <td class="px-6 py-4">
-                    <div class="flex items-center gap-2">
-                        <div class="h-2 w-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]"></div>
-                        <span class="font-bold text-slate-700">${getDeviceName(f)}</span>
+                <td class="col-unit">
+                    <div class="unit-chip">
+                        <div class="unit-dot"></div>
+                        <span>${getDeviceName(f)}</span>
                     </div>
                 </td>
-                <td class="px-6 py-4 text-slate-500 font-medium">${getDriverName(f)}</td>
-                <td class="px-6 py-4">
-                    <div class="flex flex-col">
-                        <span class="font-bold text-slate-900">${formatDateShort(f.dateTime)}</span>
-                        <span class="text-[10px] font-medium text-slate-400 uppercase">${formatTimeShort(f.dateTime)}</span>
+                <td class="col-driver">${getDriverName(f)}</td>
+                <td class="col-date">
+                    <div class="date-cell">
+                        <span class="date-main">${formatDateShort(f.dateTime)}</span>
+                        <span class="date-time">${formatTimeShort(f.dateTime)}</span>
                     </div>
                 </td>
-                <td class="px-6 py-4">
-                    <span class="inline-flex rounded-full px-2.5 py-1 text-[11px] font-black shadow-sm ${volClass}">${formatVolume(f.derivedVolume)}</span>
+                <td class="col-vol">
+                    <span class="vol-badge ${volClass}">${formatVolume(f.derivedVolume)}</span>
                 </td>
-                <td class="px-6 py-4 text-slate-500 font-mono font-medium">${formatOdometer(f.odometer)}</td>
-                <td class="px-6 py-4 text-right">
-                    ${f.location ? `<button class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-[10px] font-bold text-slate-600 transition-all hover:bg-slate-50 hover:text-blue-900 hover:border-blue-200" onclick="window.openMapModal(${f.location.y}, ${f.location.x})"><i data-lucide="map-pin" width="14" height="14"></i> Ver Mapa</button>` : "—"}
+                <td class="col-odo">${formatOdometer(f.odometer)}</td>
+                <td class="col-map">
+                    ${f.location ? `<button class="btn-map" onclick="window.openMapModal(${f.location.y}, ${f.location.x})"><i data-lucide="map-pin" width="14" height="14"></i> Ver Mapa</button>` : "—"}
                 </td>
             `;
             tbody.appendChild(tr);
@@ -365,10 +357,12 @@ geotab.addin.dashboard = function () {
         // Table
         const tbody = document.getElementById("fillup-tbody");
         if (tbody) tbody.innerHTML = `
-            <tr class="animate-pulse"><td colspan="6"><div class="mx-6 my-4 h-4 rounded bg-slate-100"></div></td></tr>
-            <tr class="animate-pulse"><td colspan="6"><div class="mx-6 my-4 h-4 rounded bg-slate-100"></div></td></tr>
-            <tr class="animate-pulse"><td colspan="6"><div class="mx-6 my-4 h-4 rounded bg-slate-100"></div></td></tr>
-            <tr class="animate-pulse"><td colspan="6"><div class="mx-6 my-4 h-4 rounded bg-slate-100"></div></td></tr>
+            <tr class="tr-skeleton"><td colspan="6"><div class="td-skel"></div></td></tr>
+            <tr class="tr-skeleton"><td colspan="6"><div class="td-skel"></div></td></tr>
+            <tr class="tr-skeleton"><td colspan="6"><div class="td-skel"></div></td></tr>
+            <tr class="tr-skeleton"><td colspan="6"><div class="td-skel"></div></td></tr>
+            <tr class="tr-skeleton"><td colspan="6"><div class="td-skel"></div></td></tr>
+            <tr class="tr-skeleton"><td colspan="6"><div class="td-skel"></div></td></tr>
         `;
 
         const badgeTable = document.getElementById("badge-table");
@@ -386,152 +380,6 @@ geotab.addin.dashboard = function () {
         if (searchInput) searchInput.value = "";
     };
 
-    // ─── Render Charts ────────────────────────────────────────────────────────
-    const renderCharts = (fillups) => {
-        if (!window.ApexCharts) return;
-
-        const cCyan = "#00b1e1";
-        const cBlue = "#003666";
-        const cGreen = "#3b753c";
-        const textMuted = "#5e6c84";
-        const fontFamily = "'Inter', sans-serif";
-
-        const commonOptions = {
-            chart: { fontFamily: fontFamily, toolbar: { show: false } },
-            dataLabels: { enabled: false },
-            tooltip: { theme: 'light' }
-        };
-
-        // 1. Monthly Volume (Area Chart) - now dynamic by interval
-        const groupedData = {};
-        
-        fillups.forEach(f => {
-            if (!f.dateTime) return;
-            const d = new Date(f.dateTime);
-            let key;
-            
-            if (chartInterval === "day") {
-                key = d.toISOString().slice(0, 10);
-            } else if (chartInterval === "week") {
-                // Get Monday of that week
-                const day = d.getDay();
-                const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-                const monday = new Date(d.setDate(diff));
-                key = monday.toISOString().slice(0, 10);
-            } else {
-                key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-            }
-            
-            groupedData[key] = (groupedData[key] || 0) + (parseFloat(f.derivedVolume) || 0);
-        });
-        
-        const sortedKeys = Object.keys(groupedData).sort();
-        const intervalSeries = sortedKeys.map(k => Math.round(groupedData[k]));
-        
-        // Format labels for display
-        const categories = sortedKeys.map(k => {
-            if (chartInterval === "day") return k.slice(5); // MM-DD
-            if (chartInterval === "week") {
-                const d = new Date(k + "T12:00:00");
-                return "Sem " + d.toLocaleDateString("es-MX", { day: "2-digit", month: "short" });
-            }
-            return k; // YYYY-MM
-        });
-        
-        const optMonthly = {
-            ...commonOptions,
-            series: [{ name: 'Litros', data: intervalSeries }],
-            chart: { type: 'area', height: 260, toolbar: { show: false }, zoom: { enabled: false } },
-            colors: [cCyan],
-            fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0.05, stops: [0, 100] } },
-            stroke: { curve: 'smooth', width: 2 },
-            xaxis: { categories: categories, labels: { style: { colors: textMuted, fontSize: chartInterval === 'day' ? '10px' : '11px' } } },
-            yaxis: { labels: { formatter: (val) => val.toLocaleString() + " L", style: { colors: textMuted } } },
-            noData: { text: "No hay datos para graficar", align: 'center', verticalAlign: 'middle', style: { color: textMuted } }
-        };
-
-        if (chartMonthly) chartMonthly.destroy();
-        chartMonthly = new ApexCharts(document.querySelector("#chart-monthly"), optMonthly);
-        chartMonthly.render();
-
-        // 2. Day of Week Volume
-        const dowData = [0, 0, 0, 0, 0, 0, 0];
-        fillups.forEach(f => {
-            if (!f.dateTime) return;
-            dowData[new Date(f.dateTime).getDay()] += parseFloat(f.derivedVolume) || 0;
-        });
-
-        // Shift array to start with Lunes
-        const dowLabels = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
-        const shiftedDowData = [dowData[1], dowData[2], dowData[3], dowData[4], dowData[5], dowData[6], dowData[0]];
-        const dowSeries = shiftedDowData.map(v => Math.round(v));
-        
-        const optDow = {
-            ...commonOptions,
-            series: [{ name: 'Litros Totales', data: dowSeries }],
-            chart: { type: 'bar', height: 260, toolbar: { show: false } },
-            colors: [cBlue],
-            plotOptions: { bar: { borderRadius: 4, dataLabels: { position: 'top' } } },
-            xaxis: { categories: dowLabels, labels: { style: { colors: textMuted } } },
-            yaxis: { labels: { formatter: (val) => val.toLocaleString() + " L", style: { colors: textMuted } } },
-            noData: { text: "No hay datos", align: 'center', verticalAlign: 'middle', style: { color: textMuted } }
-        };
-
-        if (chartDow) chartDow.destroy();
-        chartDow = new ApexCharts(document.querySelector("#chart-dow"), optDow);
-        chartDow.render();
-
-        // 4. Heatmap: Cargas por Hora y Día
-        const heatmapGrid = Array.from({length: 7}, () => Array(24).fill(0));
-        fillups.forEach(f => {
-            if (!f.dateTime) return;
-            const d = new Date(f.dateTime);
-            let day = d.getDay() - 1; // 0=Lun
-            if (day === -1) day = 6;
-            const hour = d.getHours();
-            heatmapGrid[day][hour]++;
-        });
-
-        const seriesHeatmap = dowLabels.map((dayLabel, dayIdx) => {
-            return {
-                name: dayLabel,
-                data: Array.from({length: 24}, (_, hourIdx) => ({
-                    x: hourIdx.toString().padStart(2, '0') + 'h',
-                    y: heatmapGrid[dayIdx][hourIdx]
-                }))
-            };
-        });
-
-        const optHeatmap = {
-            ...commonOptions,
-            series: seriesHeatmap,
-            chart: { type: 'heatmap', height: 260, toolbar: { show: false } },
-            dataLabels: { enabled: false },
-            colors: [cCyan],
-            plotOptions: {
-                heatmap: {
-                    shadeIntensity: 0.5,
-                    radius: 2,
-                    useFillColorAsStroke: false,
-                    colorScale: {
-                        ranges: [
-                            { from: 0, to: 0, color: '#f8fafc', name: '0' },
-                            { from: 1, to: 2, color: '#bae6fd', name: '1-2' },
-                            { from: 3, to: 6, color: '#0ea5e9', name: '3-6' },
-                            { from: 7, to: 1000, color: '#0369a1', name: '>6' }
-                        ]
-                    }
-                }
-            },
-            xaxis: { labels: { style: { colors: textMuted, fontSize: '10px' } } },
-            yaxis: { labels: { style: { colors: textMuted, fontSize: '11px', fontWeight: 600 } } }
-        };
-
-        if (chartHeatmap) chartHeatmap.destroy();
-        chartHeatmap = new ApexCharts(document.querySelector("#chart-heatmap"), optHeatmap);
-        chartHeatmap.render();
-    };
-
     // ─── Filter by search ─────────────────────────────────────────────────────
     const applySearch = (query) => {
         if (!query || query.trim() === "") {
@@ -542,7 +390,6 @@ geotab.addin.dashboard = function () {
         }
         renderTable(filteredFillups);
         renderRawTable(filteredFillups);
-        renderCharts(filteredFillups);
         const badgeTable = document.getElementById("badge-table");
         if (badgeTable) badgeTable.textContent = `${filteredFillups.length} registros`;
     };
@@ -579,7 +426,6 @@ geotab.addin.dashboard = function () {
             renderRanking(allFillups);
             renderTable(filteredFillups);
             renderRawTable(filteredFillups);
-            renderCharts(filteredFillups);
 
             if (window.lucide) {
                 lucide.createIcons();
@@ -653,14 +499,11 @@ geotab.addin.dashboard = function () {
             dateToInput.value = todayStr;
             dateToInput.max = todayStr;
 
-            const closePopover = () => datePopover.classList.add("hidden");
+            const closePopover = () => datePopover.classList.remove("open");
 
             btnCustom.addEventListener("click", (e) => {
                 e.stopPropagation();
-                datePopover.classList.toggle("hidden");
-                if (!datePopover.classList.contains("hidden")) {
-                    datePopover.classList.add("open");
-                }
+                datePopover.classList.toggle("open");
             });
 
             btnCancel.addEventListener("click", closePopover);
@@ -706,24 +549,6 @@ geotab.addin.dashboard = function () {
             }
 
             btnRefresh.addEventListener("click", () => { loadData(); });
-
-            // ── Chart interval buttons ────────────────────────────────────
-            document.querySelectorAll(".btn-interval").forEach(btn => {
-                btn.addEventListener("click", () => {
-                    document.querySelectorAll(".btn-interval").forEach(b => b.classList.remove("active"));
-                    btn.classList.add("active");
-                    chartInterval = btn.dataset.interval;
-                    
-                    // Update label
-                    const labelEl = document.getElementById("label-monthly-chart");
-                    if (labelEl) {
-                        const labels = { "day": "Litros por Día", "week": "Litros por Semana", "month": "Litros por Mes" };
-                        labelEl.textContent = labels[chartInterval] || "Litros Totales";
-                    }
-                    
-                    renderCharts(filteredFillups);
-                });
-            });
 
             callback();
         },
