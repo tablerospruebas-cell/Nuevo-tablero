@@ -1,5 +1,23 @@
 "use strict";
 
+window.openMapModal = function(lat, lng) {
+    const modal = document.getElementById("map-modal");
+    const iframe = document.getElementById("map-iframe");
+    if (modal && iframe) {
+        iframe.src = `https://maps.google.com/maps?q=${lat},${lng}&t=m&z=15&output=embed`;
+        modal.classList.add("open");
+    }
+};
+
+window.closeMapModal = function() {
+    const modal = document.getElementById("map-modal");
+    const iframe = document.getElementById("map-iframe");
+    if (modal) {
+        modal.classList.remove("open");
+        setTimeout(() => { if (iframe) iframe.src = ""; }, 300);
+    }
+};
+
 geotab.addin.dashboard = function () {
     let api;
     let selectedDays = 7;
@@ -8,8 +26,6 @@ geotab.addin.dashboard = function () {
     let isCustomRange = false;
     let allFillups = [];       // All raw FillUp records
     let filteredFillups = [];  // After search filter
-    let charts = {};
-    let currentInterval = "month";
 
     // ─── DOM refs ────────────────────────────────────────────────────────────
     let btnRefresh, lastUpdatedEl, errorToast, errorToastMsg, searchInput;
@@ -252,40 +268,11 @@ geotab.addin.dashboard = function () {
                     <span class="vol-badge ${volClass}">${formatVolume(f.derivedVolume)}</span>
                 </td>
                 <td class="col-odo">${formatOdometer(f.odometer)}</td>
-                <td class="col-loc">
-                    ${(f.location && f.location.x && f.location.y)
-                    ? `<button class="btn-location" data-lat="${f.location.y}" data-lng="${f.location.x}" data-unit="${getDeviceName(f)}">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                                    <circle cx="12" cy="10" r="3" />
-                                </svg>
-                                Ver Mapa
-                           </button>`
-                    : (f.location ? JSON.stringify(f.location) : "—")
-                }
+                <td class="col-map">
+                    ${f.location ? `<button class="btn-map" onclick="window.openMapModal(${f.location.y}, ${f.location.x})"><i data-lucide="map-pin" width="14" height="14"></i> Ver Mapa</button>` : "—"}
                 </td>
             `;
             tbody.appendChild(tr);
-        });
-
-        bindLocationButtons();
-    };
-
-    const bindLocationButtons = () => {
-        document.querySelectorAll('.btn-location').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const lat = btn.getAttribute('data-lat');
-                const lng = btn.getAttribute('data-lng');
-                const unit = btn.getAttribute('data-unit');
-
-                const mapModal = document.getElementById("map-modal");
-                const mapIframe = document.getElementById("map-iframe");
-                const modalTitle = document.getElementById("map-modal-title");
-
-                if (modalTitle) modalTitle.textContent = `Ubicación: ${unit}`;
-                if (mapIframe) mapIframe.src = `https://maps.google.com/maps?q=${lat},${lng}&hl=es&z=16&t=k&output=embed`;
-                if (mapModal) mapModal.style.display = "flex";
-            });
         });
     };
 
@@ -426,8 +413,7 @@ geotab.addin.dashboard = function () {
             const deviceMap = {};
             devices.forEach(d => { deviceMap[d.id] = d.name; });
 
-            // Enrich fillups with real name
-            result.forEach(f => {
+            result.forEach((f) => {
                 if (f.device && f.device.id && deviceMap[f.device.id]) {
                     f.device.name = deviceMap[f.device.id];
                 }
@@ -440,7 +426,10 @@ geotab.addin.dashboard = function () {
             renderRanking(allFillups);
             renderTable(filteredFillups);
             renderRawTable(filteredFillups);
-            updateCharts(allFillups);
+
+            if (window.lucide) {
+                lucide.createIcons();
+            }
 
             const now = new Date();
             lastUpdatedEl.textContent = `Actualizado: ${now.toLocaleTimeString("es-MX", {
@@ -462,6 +451,11 @@ geotab.addin.dashboard = function () {
         initialize: function (_api, state, callback) {
             api = _api;
 
+            // Initialize Lucide icons
+            if (window.lucide) {
+                lucide.createIcons();
+            }
+
             btnRefresh = document.getElementById("btn-refresh");
             lastUpdatedEl = document.getElementById("last-updated-time");
             errorToast = document.getElementById("error-toast");
@@ -480,14 +474,12 @@ geotab.addin.dashboard = function () {
                     const btnCustom = document.getElementById("btn-custom");
                     if (btnCustom) {
                         btnCustom.innerHTML = `
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                                <line x1="16" y1="2" x2="16" y2="6"/>
-                                <line x1="8" y1="2" x2="8" y2="6"/>
-                                <line x1="3" y1="10" x2="21" y2="10"/>
-                            </svg>
+                            <i data-lucide="calendar" width="13" height="13" stroke-width="2.5"></i>
                             Personalizado
                         `;
+                        if (window.lucide) {
+                            lucide.createIcons();
+                        }
                     }
                     loadData();
                 });
@@ -528,14 +520,12 @@ geotab.addin.dashboard = function () {
 
                 const fmt = (s) => new Date(s + "T12:00:00").toLocaleDateString("es-MX", { day: "2-digit", month: "short" });
                 btnCustom.innerHTML = `
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                        <line x1="16" y1="2" x2="16" y2="6"/>
-                        <line x1="8" y1="2" x2="8" y2="6"/>
-                        <line x1="3" y1="10" x2="21" y2="10"/>
-                    </svg>
+                    <i data-lucide="calendar" width="13" height="13" stroke-width="2.5"></i>
                     ${fmt(from)} – ${fmt(to)}
                 `;
+                if (window.lucide) {
+                    lucide.createIcons();
+                }
 
                 document.querySelectorAll(".btn-range").forEach(b => b.classList.remove("active"));
                 btnCustom.classList.add("active");
@@ -560,35 +550,6 @@ geotab.addin.dashboard = function () {
 
             btnRefresh.addEventListener("click", () => { loadData(); });
 
-            // ── Modal listeners ───────────────────────────────────────────
-            const mapModal = document.getElementById("map-modal");
-            const btnCloseMap = document.getElementById("btn-close-map");
-            const mapIframe = document.getElementById("map-iframe");
-
-            if (btnCloseMap && mapModal) {
-                btnCloseMap.addEventListener("click", () => {
-                    mapModal.style.display = "none";
-                    if (mapIframe) mapIframe.src = "";
-                });
-                mapModal.addEventListener("click", (e) => {
-                    if (e.target === mapModal) {
-                        mapModal.style.display = "none";
-                        if (mapIframe) mapIframe.src = "";
-                    }
-                });
-            }
-
-            // ── Chart interval buttons ───────────────────────────────────
-            document.querySelectorAll(".btn-interval").forEach(btn => {
-                btn.addEventListener("click", () => {
-                    document.querySelectorAll(".btn-interval").forEach(b => b.classList.remove("active"));
-                    btn.classList.add("active");
-                    currentInterval = btn.dataset.interval;
-                    updateCharts(allFillups);
-                });
-            });
-
-            initCharts();
             callback();
         },
         focus: function (_api, state) {
@@ -599,190 +560,4 @@ geotab.addin.dashboard = function () {
             // nothing
         }
     };
-
-    // ─── Chart Logic ──────────────────────────────────────────────────────────
-    function initCharts() {
-        const textColor = '#5e6c84'; // matches --color-text-muted
-        const commonOptions = {
-            chart: { height: '100%', toolbar: { show: false }, animations: { enabled: true } },
-            colors: ['#003666', '#00b1e1', '#3b753c', '#f29300', '#cc0000'],
-            dataLabels: { enabled: false },
-            grid: { borderColor: '#f1f5f9' },
-            xaxis: {
-                labels: {
-                    show: true,
-                    hideOverlappingLabels: true,
-                    style: { colors: textColor, fontSize: '11px', fontWeight: 500 }
-                },
-                axisBorder: { show: false },
-                axisTicks: { show: false }
-            },
-            yaxis: {
-                labels: {
-                    show: true,
-                    style: { colors: textColor, fontSize: '11px' }
-                }
-            }
-        };
-
-        // Monthly Trend
-        charts.monthly = new ApexCharts(document.querySelector("#chart-monthly"), {
-            ...commonOptions,
-            chart: { ...commonOptions.chart, type: 'area', sparkline: { enabled: false } },
-            series: [{ name: 'Litros', data: [] }],
-            xaxis: {
-                ...commonOptions.xaxis,
-                type: 'category',
-                labels: { ...commonOptions.xaxis.labels, rotate: -45, rotateAlways: false }
-            },
-            stroke: { curve: 'straight', width: 2 },
-            fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.45, opacityTo: 0.05 } }
-        });
-
-        // Day of Week
-        charts.dow = new ApexCharts(document.querySelector("#chart-dow"), {
-            ...commonOptions,
-            chart: { ...commonOptions.chart, type: 'bar' },
-            series: [{ name: 'Litros', data: [] }],
-            plotOptions: { bar: { borderRadius: 4, columnWidth: '60%' } },
-            xaxis: {
-                ...commonOptions.xaxis,
-                categories: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
-            }
-        });
-
-        // Histogram
-        charts.histogram = new ApexCharts(document.querySelector("#chart-histogram"), {
-            ...commonOptions,
-            chart: { ...commonOptions.chart, type: 'bar' },
-            series: [{ name: 'Cargas', data: [] }],
-            plotOptions: { bar: { borderRadius: 4, horizontal: false } },
-            xaxis: {
-                ...commonOptions.xaxis,
-                title: { text: 'Rango (L)', style: { color: textColor, fontSize: '10px' } }
-            }
-        });
-
-        // Heatmap
-        charts.heatmap = new ApexCharts(document.querySelector("#chart-heatmap"), {
-            ...commonOptions,
-            chart: { ...commonOptions.chart, type: 'heatmap' },
-            series: [],
-            plotOptions: {
-                heatmap: {
-                    shadeIntensity: 0.5,
-                    colorScale: {
-                        ranges: [
-                            { from: 0, to: 0, color: '#f8fafc', name: 'sin actividad' },
-                            { from: 1, to: 5, color: '#e0f2fe', name: 'baja' },
-                            { from: 6, to: 15, color: '#7dd3fc', name: 'media' },
-                            { from: 16, to: 100, color: '#0ea5e9', name: 'alta' }
-                        ]
-                    }
-                }
-            },
-            xaxis: {
-                ...commonOptions.xaxis,
-                labels: { ...commonOptions.xaxis.labels, show: true }
-            }
-        });
-
-        Object.values(charts).forEach(c => c.render());
-    }
-
-    function updateCharts(data) {
-        if (!data || data.length === 0) return;
-
-        // 1. Trend Chart
-        const trend = getTrendData(data, currentInterval);
-        charts.monthly.updateSeries([{ name: 'Litros', data: trend.values }]);
-        charts.monthly.updateOptions({ xaxis: { categories: trend.labels } });
-
-        // 2. Day of Week
-        const dow = getDoWData(data);
-        charts.dow.updateSeries([{ name: 'Litros', data: dow }]);
-
-        // 3. Histogram
-        const hist = getHistogramData(data);
-        charts.histogram.updateSeries([{ name: 'Cargas', data: hist.values }]);
-        charts.histogram.updateOptions({ xaxis: { categories: hist.labels } });
-
-        // 4. Heatmap
-        const heatmapData = getHeatmapData(data);
-        charts.heatmap.updateSeries(heatmapData);
-    }
-
-    function getTrendData(data, interval) {
-        const groups = {};
-        const sorted = [...data].sort((a, b) => new Date(a.dateTime) - new Date(b.dateTime));
-
-        sorted.forEach(f => {
-            const d = new Date(f.dateTime);
-            let key;
-            if (interval === 'day') {
-                key = d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short' });
-            } else if (interval === 'week') {
-                const tempDate = new Date(d.getTime());
-                const dayOfWeek = (tempDate.getDay() + 6) % 7; // 0=Mon, ..., 6=Sun
-                const monday = new Date(tempDate.getFullYear(), tempDate.getMonth(), tempDate.getDate() - dayOfWeek);
-                key = "Sem " + monday.toLocaleDateString('es-MX', { day: '2-digit', month: 'short' });
-            } else {
-                key = d.toLocaleDateString('es-MX', { month: 'short', year: '2-digit' });
-            }
-            groups[key] = (groups[key] || 0) + (parseFloat(f.derivedVolume) || 0);
-        });
-
-        return {
-            labels: Object.keys(groups),
-            values: Object.values(groups).map(v => Math.round(v))
-        };
-    }
-
-    function getDoWData(data) {
-        const dow = new Array(7).fill(0);
-        data.forEach(f => {
-            const d = new Date(f.dateTime);
-            let day = d.getDay(); // 0=Sun
-            day = day === 0 ? 6 : day - 1; // 0=Mon, ..., 6=Sun
-            dow[day] += (parseFloat(f.derivedVolume) || 0);
-        });
-        return dow.map(v => Math.round(v));
-    }
-
-    function getHistogramData(data) {
-        const buckets = ["0-20", "20-40", "40-60", "60-80", "80-100", "100+"];
-        const values = new Array(buckets.length).fill(0);
-        data.forEach(f => {
-            const v = parseFloat(f.derivedVolume) || 0;
-            if (v < 20) values[0]++;
-            else if (v < 40) values[1]++;
-            else if (v < 60) values[2]++;
-            else if (v < 80) values[3]++;
-            else if (v < 100) values[4]++;
-            else values[5]++;
-        });
-        return { labels: buckets, values };
-    }
-
-    function getHeatmapData(data) {
-        // 7 days (Mon-Sun) x 24 hours
-        const days = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
-        const matrix = days.map(day => ({ name: day, data: [] }));
-
-        for (let d = 0; d < 7; d++) {
-            for (let h = 0; h < 24; h++) {
-                matrix[d].data.push({ x: `${h}h`, y: 0 });
-            }
-        }
-
-        data.forEach(f => {
-            const d = new Date(f.dateTime);
-            let dayIdx = d.getDay();
-            dayIdx = dayIdx === 0 ? 6 : dayIdx - 1;
-            const hour = d.getHours();
-            matrix[dayIdx].data[hour].y++;
-        });
-
-        return matrix;
-    }
 };
