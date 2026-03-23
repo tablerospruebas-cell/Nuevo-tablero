@@ -143,7 +143,12 @@
                     <div class="panel-header">
                         <div class="panel-title-group">
                             <i data-lucide="bar-chart" width="16" height="16" stroke-width="2"></i>
-                            <span>Litros Totales por Mes</span>
+                            <span id="label-monthly-chart">Litros Totales</span>
+                        </div>
+                        <div class="chart-interval-group">
+                            <button class="btn-interval" data-interval="day">Día</button>
+                            <button class="btn-interval" data-interval="week">Semana</button>
+                            <button class="btn-interval active" data-interval="month">Mes</button>
                         </div>
                     </div>
                     <div id="chart-monthly" class="chart-container"></div>
