@@ -1,3 +1,6 @@
+/* ═══════════════════════════════════════════════════════════════
+   DESIGN SYSTEM VARIABLES
+═══════════════════════════════════════════════════════════════ */
 :root {
     /* Base - Modo Claro Geotab */
     --color-bg-main: #f0f2f5;
@@ -181,6 +184,41 @@ body {
     gap: 0.35rem;
     border-left: 1px solid var(--color-panel-border);
     padding-left: 0.9rem;
+}
+
+/* ── Chart Interval Buttons ── */
+.chart-interval-group {
+    display: flex;
+    background: #f1f5f9;
+    border: 1px solid var(--color-panel-border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    padding: 2px;
+}
+
+.btn-interval {
+    background: transparent;
+    border: none;
+    color: var(--color-text-muted);
+    font-family: var(--font);
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 0.25rem 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-radius: calc(var(--radius-md) - 2px);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.btn-interval:hover {
+    color: var(--color-text-main);
+}
+
+.btn-interval.active {
+    background: #ffffff;
+    color: var(--color-primary);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
 /* ── Date Range Popover ── */
