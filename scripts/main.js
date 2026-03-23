@@ -29,6 +29,7 @@ geotab.addin.dashboard = function () {
     
     // Chart instances
     let chartMonthly, chartDow, chartHistogram, chartHeatmap;
+    let chartInterval = "month"; // "day", "week", "month"
 
     // ─── DOM refs ────────────────────────────────────────────────────────────
     let btnRefresh, lastUpdatedEl, errorToast, errorToastMsg, searchInput;
@@ -399,26 +400,50 @@ geotab.addin.dashboard = function () {
             tooltip: { theme: 'light' }
         };
 
-        // 1. Monthly Volume (Area Chart)
-        const monthlyData = {};
+        // 1. Monthly Volume (Area Chart) - now dynamic by interval
+        const groupedData = {};
+        
         fillups.forEach(f => {
             if (!f.dateTime) return;
             const d = new Date(f.dateTime);
-            const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-            monthlyData[key] = (monthlyData[key] || 0) + (parseFloat(f.derivedVolume) || 0);
+            let key;
+            
+            if (chartInterval === "day") {
+                key = d.toISOString().slice(0, 10);
+            } else if (chartInterval === "week") {
+                // Get Monday of that week
+                const day = d.getDay();
+                const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+                const monday = new Date(d.setDate(diff));
+                key = monday.toISOString().slice(0, 10);
+            } else {
+                key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+            }
+            
+            groupedData[key] = (groupedData[key] || 0) + (parseFloat(f.derivedVolume) || 0);
         });
         
-        const sortedMonths = Object.keys(monthlyData).sort();
-        const monthSeries = sortedMonths.map(k => Math.round(monthlyData[k]));
+        const sortedKeys = Object.keys(groupedData).sort();
+        const intervalSeries = sortedKeys.map(k => Math.round(groupedData[k]));
+        
+        // Format labels for display
+        const categories = sortedKeys.map(k => {
+            if (chartInterval === "day") return k.slice(5); // MM-DD
+            if (chartInterval === "week") {
+                const d = new Date(k + "T12:00:00");
+                return "Sem " + d.toLocaleDateString("es-MX", { day: "2-digit", month: "short" });
+            }
+            return k; // YYYY-MM
+        });
         
         const optMonthly = {
             ...commonOptions,
-            series: [{ name: 'Litros', data: monthSeries }],
+            series: [{ name: 'Litros', data: intervalSeries }],
             chart: { type: 'area', height: 260, toolbar: { show: false }, zoom: { enabled: false } },
             colors: [cCyan],
             fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0.05, stops: [0, 100] } },
             stroke: { curve: 'smooth', width: 2 },
-            xaxis: { categories: sortedMonths, labels: { style: { colors: textMuted } } },
+            xaxis: { categories: categories, labels: { style: { colors: textMuted, fontSize: chartInterval === 'day' ? '10px' : '11px' } } },
             yaxis: { labels: { formatter: (val) => val.toLocaleString() + " L", style: { colors: textMuted } } },
             noData: { text: "No hay datos para graficar", align: 'center', verticalAlign: 'middle', style: { color: textMuted } }
         };
@@ -703,6 +728,24 @@ geotab.addin.dashboard = function () {
             }
 
             btnRefresh.addEventListener("click", () => { loadData(); });
+
+            // ── Chart interval buttons ────────────────────────────────────
+            document.querySelectorAll(".btn-interval").forEach(btn => {
+                btn.addEventListener("click", () => {
+                    document.querySelectorAll(".btn-interval").forEach(b => b.classList.remove("active"));
+                    btn.classList.add("active");
+                    chartInterval = btn.dataset.interval;
+                    
+                    // Update label
+                    const labelEl = document.getElementById("label-monthly-chart");
+                    if (labelEl) {
+                        const labels = { "day": "Litros por Día", "week": "Litros por Semana", "month": "Litros por Mes" };
+                        labelEl.textContent = labels[chartInterval] || "Litros Totales";
+                    }
+                    
+                    renderCharts(filteredFillups);
+                });
+            });
 
             callback();
         },
