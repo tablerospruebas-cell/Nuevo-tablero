@@ -337,19 +337,32 @@ geotab.addin.dashboard = function () {
 
     // ─── Render Charts ───────────────────────────────────────────────────────
     const renderCharts = (fillups) => {
+        if (!window.ApexCharts) {
+            console.error("ApexCharts not loaded");
+            return;
+        }
         const activityContainer = document.getElementById("chart-activity");
         const heatmapContainer = document.getElementById("chart-heatmap");
         if (!activityContainer || !heatmapContainer) return;
 
+        if (!fillups || fillups.length === 0) {
+            activityContainer.innerHTML = '<div class="ranking-empty">Sin datos para graficar</div>';
+            heatmapContainer.innerHTML = '<div class="ranking-empty">Sin datos para graficar</div>';
+            return;
+        }
+
+
         // 1. Data Aggregation for Activity Chart
         const dataByGroup = {};
         fillups.forEach(f => {
+            if (!f.dateTime) return;
             const date = new Date(f.dateTime);
+            if (isNaN(date.getTime())) return; // Skip invalid dates
+
             let groupKey;
             if (currentChartView === "day") {
                 groupKey = date.toISOString().split("T")[0];
             } else if (currentChartView === "week") {
-                // Get start of week (Sunday)
                 const d = new Date(date);
                 const day = d.getDay();
                 const diff = d.getDate() - day;
@@ -362,6 +375,10 @@ geotab.addin.dashboard = function () {
         });
 
         const sortedKeys = Object.keys(dataByGroup).sort();
+        if (sortedKeys.length === 0) {
+            activityContainer.innerHTML = '<div class="ranking-empty">Sin datos válidos para graficar</div>';
+            return;
+        }
         const categories = sortedKeys.map(k => {
             if (currentChartView === "day") return k.split("-").slice(1).reverse().join("/");
             if (currentChartView === "week") return "Sem " + k.split("-").slice(1).reverse().join("/");
@@ -403,9 +420,11 @@ geotab.addin.dashboard = function () {
         if (activityChart) {
             activityChart.updateOptions(activityOptions);
         } else {
+            activityContainer.innerHTML = ""; // Clear any messages
             activityChart = new ApexCharts(activityContainer, activityOptions);
             activityChart.render();
         }
+
 
         // 2. Heatmap Data (Hour vs Day of Week)
         const heatmapData = Array.from({ length: 7 }, (_, i) => ({
@@ -433,10 +452,12 @@ geotab.addin.dashboard = function () {
         if (heatmapChart) {
             heatmapChart.updateOptions(heatmapOptions);
         } else {
+            heatmapContainer.innerHTML = ""; // Clear any messages
             heatmapChart = new ApexCharts(heatmapContainer, heatmapOptions);
             heatmapChart.render();
         }
     };
+
     // ─── Reset UI ─────────────────────────────────────────────────────────────
     const resetUI = () => {
         // Summary stats
