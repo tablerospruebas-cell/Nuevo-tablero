@@ -1,6 +1,6 @@
 "use strict";
 
-window.openMapModal = function(lat, lng) {
+window.openMapModal = function (lat, lng) {
     const modal = document.getElementById("map-modal");
     const iframe = document.getElementById("map-iframe");
     if (modal && iframe) {
@@ -9,7 +9,7 @@ window.openMapModal = function(lat, lng) {
     }
 };
 
-window.closeMapModal = function() {
+window.closeMapModal = function () {
     const modal = document.getElementById("map-modal");
     const iframe = document.getElementById("map-iframe");
     if (modal) {
@@ -29,6 +29,9 @@ geotab.addin.dashboard = function () {
 
     // ─── DOM refs ────────────────────────────────────────────────────────────
     let btnRefresh, lastUpdatedEl, errorToast, errorToastMsg, searchInput;
+    let activityChart = null;
+    let heatmapChart = null;
+    let currentChartView = "day"; // day, week, month
 
     // ─── Helpers ─────────────────────────────────────────────────────────────
     const getDateRange = () => {
@@ -332,6 +335,108 @@ geotab.addin.dashboard = function () {
         });
     };
 
+    // ─── Render Charts ───────────────────────────────────────────────────────
+    const renderCharts = (fillups) => {
+        const activityContainer = document.getElementById("chart-activity");
+        const heatmapContainer = document.getElementById("chart-heatmap");
+        if (!activityContainer || !heatmapContainer) return;
+
+        // 1. Data Aggregation for Activity Chart
+        const dataByGroup = {};
+        fillups.forEach(f => {
+            const date = new Date(f.dateTime);
+            let groupKey;
+            if (currentChartView === "day") {
+                groupKey = date.toISOString().split("T")[0];
+            } else if (currentChartView === "week") {
+                // Get start of week (Sunday)
+                const d = new Date(date);
+                const day = d.getDay();
+                const diff = d.getDate() - day;
+                d.setDate(diff);
+                groupKey = d.toISOString().split("T")[0];
+            } else {
+                groupKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-01`;
+            }
+            dataByGroup[groupKey] = (dataByGroup[groupKey] || 0) + (parseFloat(f.derivedVolume) || 0);
+        });
+
+        const sortedKeys = Object.keys(dataByGroup).sort();
+        const categories = sortedKeys.map(k => {
+            if (currentChartView === "day") return k.split("-").slice(1).reverse().join("/");
+            if (currentChartView === "week") return "Sem " + k.split("-").slice(1).reverse().join("/");
+            const d = new Date(k + "T00:00:00");
+            return d.toLocaleDateString("es-MX", { month: "short", year: "2-digit" });
+        });
+        const seriesData = sortedKeys.map(k => parseFloat(dataByGroup[k].toFixed(1)));
+
+        // Update Title
+        const titleEl = document.getElementById("activity-chart-title");
+        if (titleEl) {
+            const viewLabels = { day: "Día", week: "Semana", month: "Mes" };
+            titleEl.textContent = `Actividad por ${viewLabels[currentChartView]} promedio de carga por ${currentChartView === "day" ? "día" : currentChartView === "week" ? "semana" : "mes"}`;
+        }
+
+        // Activity Chart Options
+        const activityOptions = {
+            series: [{ name: "Litros", data: seriesData }],
+            chart: {
+                type: "area",
+                height: 350,
+                toolbar: { show: false },
+                zoom: { enabled: false },
+                fontFamily: "Inter, sans-serif"
+            },
+            colors: ["#003666"],
+            fill: {
+                type: "gradient",
+                gradient: { shadeIntensity: 1, opacityFrom: 0.45, opacityTo: 0.05, stops: [20, 100] }
+            },
+            dataLabels: { enabled: false },
+            stroke: { curve: "smooth", width: 3 },
+            xaxis: { categories: categories, labels: { style: { fontSize: "10px", colors: "#64748b" } } },
+            yaxis: { labels: { style: { fontSize: "10px", colors: "#64748b" } } },
+            grid: { borderColor: "#f1f5f9", strokeDashArray: 4 },
+            tooltip: { theme: "light" }
+        };
+
+        if (activityChart) {
+            activityChart.updateOptions(activityOptions);
+        } else {
+            activityChart = new ApexCharts(activityContainer, activityOptions);
+            activityChart.render();
+        }
+
+        // 2. Heatmap Data (Hour vs Day of Week)
+        const heatmapData = Array.from({ length: 7 }, (_, i) => ({
+            name: ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"][i],
+            data: Array.from({ length: 24 }, (_, h) => ({ x: `${h}h`, y: 0 }))
+        }));
+
+        fillups.forEach(f => {
+            const d = new Date(f.dateTime);
+            const day = d.getDay();
+            const hour = d.getHours();
+            heatmapData[day].data[hour].y++;
+        });
+
+        const heatmapOptions = {
+            series: heatmapData,
+            chart: { type: "heatmap", height: 350, toolbar: { show: false }, fontFamily: "Inter, sans-serif" },
+            dataLabels: { enabled: false },
+            colors: ["#003666"],
+            xaxis: { labels: { style: { fontSize: "10px", colors: "#64748b" } } },
+            yaxis: { labels: { style: { fontSize: "10px", colors: "#64748b" } } },
+            tooltip: { theme: "light" }
+        };
+
+        if (heatmapChart) {
+            heatmapChart.updateOptions(heatmapOptions);
+        } else {
+            heatmapChart = new ApexCharts(heatmapContainer, heatmapOptions);
+            heatmapChart.render();
+        }
+    };
     // ─── Reset UI ─────────────────────────────────────────────────────────────
     const resetUI = () => {
         // Summary stats
@@ -426,6 +531,7 @@ geotab.addin.dashboard = function () {
             renderRanking(allFillups);
             renderTable(filteredFillups);
             renderRawTable(filteredFillups);
+            renderCharts(allFillups);
 
             if (window.lucide) {
                 lucide.createIcons();
@@ -482,6 +588,16 @@ geotab.addin.dashboard = function () {
                         }
                     }
                     loadData();
+                });
+            });
+
+            // ── Chart filter buttons ─────────────────────────────────────
+            document.querySelectorAll(".btn-filter").forEach(btn => {
+                btn.addEventListener("click", () => {
+                    document.querySelectorAll(".btn-filter").forEach(b => b.classList.remove("active"));
+                    btn.classList.add("active");
+                    currentChartView = btn.dataset.view;
+                    renderCharts(allFillups);
                 });
             });
 
