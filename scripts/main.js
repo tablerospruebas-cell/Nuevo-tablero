@@ -4,7 +4,7 @@ window.openMapModal = function(lat, lng) {
     const modal = document.getElementById("map-modal");
     const iframe = document.getElementById("map-iframe");
     if (modal && iframe) {
-        iframe.src = `https://maps.google.com/maps?q=${lat},${lng}&t=m&z=15&output=embed`;
+        iframe.src = `https://maps.google.com/maps?q=${lat},${lng}&t=m&z=18&output=embed`;
         modal.classList.add("open");
     }
 };
@@ -26,6 +26,9 @@ geotab.addin.dashboard = function () {
     let isCustomRange = false;
     let allFillups = [];       // All raw FillUp records
     let filteredFillups = [];  // After search filter
+    
+    // Chart instances
+    let chartMonthly, chartDow, chartHistogram, chartHeatmap;
 
     // ─── DOM refs ────────────────────────────────────────────────────────────
     let btnRefresh, lastUpdatedEl, errorToast, errorToastMsg, searchInput;
@@ -380,6 +383,155 @@ geotab.addin.dashboard = function () {
         if (searchInput) searchInput.value = "";
     };
 
+    // ─── Render Charts ────────────────────────────────────────────────────────
+    const renderCharts = (fillups) => {
+        if (!window.ApexCharts) return;
+
+        const cCyan = "#00b1e1";
+        const cBlue = "#003666";
+        const cGreen = "#3b753c";
+        const textMuted = "#5e6c84";
+        const fontFamily = "'Inter', sans-serif";
+
+        const commonOptions = {
+            chart: { fontFamily: fontFamily, toolbar: { show: false } },
+            dataLabels: { enabled: false },
+            tooltip: { theme: 'light' }
+        };
+
+        // 1. Monthly Volume (Area Chart)
+        const monthlyData = {};
+        fillups.forEach(f => {
+            if (!f.dateTime) return;
+            const d = new Date(f.dateTime);
+            const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+            monthlyData[key] = (monthlyData[key] || 0) + (parseFloat(f.derivedVolume) || 0);
+        });
+        
+        const sortedMonths = Object.keys(monthlyData).sort();
+        const monthSeries = sortedMonths.map(k => Math.round(monthlyData[k]));
+        
+        const optMonthly = {
+            ...commonOptions,
+            series: [{ name: 'Litros', data: monthSeries }],
+            chart: { type: 'area', height: 260, toolbar: { show: false }, zoom: { enabled: false } },
+            colors: [cCyan],
+            fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0.05, stops: [0, 100] } },
+            stroke: { curve: 'smooth', width: 2 },
+            xaxis: { categories: sortedMonths, labels: { style: { colors: textMuted } } },
+            yaxis: { labels: { formatter: (val) => val.toLocaleString() + " L", style: { colors: textMuted } } },
+            noData: { text: "No hay datos para graficar", align: 'center', verticalAlign: 'middle', style: { color: textMuted } }
+        };
+
+        if (chartMonthly) chartMonthly.destroy();
+        chartMonthly = new ApexCharts(document.querySelector("#chart-monthly"), optMonthly);
+        chartMonthly.render();
+
+        // 2. Day of Week Volume
+        const dowData = [0, 0, 0, 0, 0, 0, 0];
+        fillups.forEach(f => {
+            if (!f.dateTime) return;
+            dowData[new Date(f.dateTime).getDay()] += parseFloat(f.derivedVolume) || 0;
+        });
+
+        // Shift array to start with Lunes
+        const dowLabels = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
+        const shiftedDowData = [dowData[1], dowData[2], dowData[3], dowData[4], dowData[5], dowData[6], dowData[0]];
+        const dowSeries = shiftedDowData.map(v => Math.round(v));
+        
+        const optDow = {
+            ...commonOptions,
+            series: [{ name: 'Litros Totales', data: dowSeries }],
+            chart: { type: 'bar', height: 260, toolbar: { show: false } },
+            colors: [cBlue],
+            plotOptions: { bar: { borderRadius: 4, dataLabels: { position: 'top' } } },
+            xaxis: { categories: dowLabels, labels: { style: { colors: textMuted } } },
+            yaxis: { labels: { formatter: (val) => val.toLocaleString() + " L", style: { colors: textMuted } } },
+            noData: { text: "No hay datos", align: 'center', verticalAlign: 'middle', style: { color: textMuted } }
+        };
+
+        if (chartDow) chartDow.destroy();
+        chartDow = new ApexCharts(document.querySelector("#chart-dow"), optDow);
+        chartDow.render();
+
+        // 3. Volume Histogram
+        const bins = {"0-50 L": 0, "51-100 L": 0, "101-150 L": 0, "151-200 L": 0, "+201 L": 0};
+        fillups.forEach(f => {
+            const v = parseFloat(f.derivedVolume) || 0;
+            if (v <= 50) bins["0-50 L"]++;
+            else if (v <= 100) bins["51-100 L"]++;
+            else if (v <= 150) bins["101-150 L"]++;
+            else if (v <= 200) bins["151-200 L"]++;
+            else bins["+201 L"]++;
+        });
+
+        const optHist = {
+            ...commonOptions,
+            series: [{ name: 'Cargas', data: Object.values(bins) }],
+            chart: { type: 'bar', height: 260, toolbar: { show: false } },
+            colors: [cGreen],
+            plotOptions: { bar: { horizontal: true, borderRadius: 4 } },
+            dataLabels: { enabled: true, textAnchor: 'start', offsetX: 0, formatter: val => val, style: { colors: ["#fff"] } },
+            xaxis: { labels: { style: { colors: textMuted } } },
+            yaxis: { categories: Object.keys(bins), labels: { style: { colors: textMuted } } },
+            noData: { text: "No hay datos", align: 'center', verticalAlign: 'middle', style: { color: textMuted } }
+        };
+
+        if (chartHistogram) chartHistogram.destroy();
+        chartHistogram = new ApexCharts(document.querySelector("#chart-histogram"), optHist);
+        chartHistogram.render();
+
+        // 4. Heatmap: Cargas por Hora y Día
+        const heatmapGrid = Array.from({length: 7}, () => Array(24).fill(0));
+        fillups.forEach(f => {
+            if (!f.dateTime) return;
+            const d = new Date(f.dateTime);
+            let day = d.getDay() - 1; // 0=Lun
+            if (day === -1) day = 6;
+            const hour = d.getHours();
+            heatmapGrid[day][hour]++;
+        });
+
+        const seriesHeatmap = dowLabels.map((dayLabel, dayIdx) => {
+            return {
+                name: dayLabel,
+                data: Array.from({length: 24}, (_, hourIdx) => ({
+                    x: hourIdx.toString().padStart(2, '0') + 'h',
+                    y: heatmapGrid[dayIdx][hourIdx]
+                }))
+            };
+        });
+
+        const optHeatmap = {
+            ...commonOptions,
+            series: seriesHeatmap,
+            chart: { type: 'heatmap', height: 260, toolbar: { show: false } },
+            dataLabels: { enabled: false },
+            colors: [cCyan],
+            plotOptions: {
+                heatmap: {
+                    shadeIntensity: 0.5,
+                    radius: 2,
+                    useFillColorAsStroke: false,
+                    colorScale: {
+                        ranges: [
+                            { from: 0, to: 0, color: '#f8fafc', name: '0' },
+                            { from: 1, to: 2, color: '#bae6fd', name: '1-2' },
+                            { from: 3, to: 6, color: '#0ea5e9', name: '3-6' },
+                            { from: 7, to: 1000, color: '#0369a1', name: '>6' }
+                        ]
+                    }
+                }
+            },
+            xaxis: { labels: { style: { colors: textMuted, fontSize: '10px' } } },
+            yaxis: { labels: { style: { colors: textMuted, fontSize: '11px', fontWeight: 600 } } }
+        };
+
+        if (chartHeatmap) chartHeatmap.destroy();
+        chartHeatmap = new ApexCharts(document.querySelector("#chart-heatmap"), optHeatmap);
+        chartHeatmap.render();
+    };
+
     // ─── Filter by search ─────────────────────────────────────────────────────
     const applySearch = (query) => {
         if (!query || query.trim() === "") {
@@ -390,6 +542,7 @@ geotab.addin.dashboard = function () {
         }
         renderTable(filteredFillups);
         renderRawTable(filteredFillups);
+        renderCharts(filteredFillups);
         const badgeTable = document.getElementById("badge-table");
         if (badgeTable) badgeTable.textContent = `${filteredFillups.length} registros`;
     };
@@ -426,6 +579,7 @@ geotab.addin.dashboard = function () {
             renderRanking(allFillups);
             renderTable(filteredFillups);
             renderRawTable(filteredFillups);
+            renderCharts(filteredFillups);
 
             if (window.lucide) {
                 lucide.createIcons();
