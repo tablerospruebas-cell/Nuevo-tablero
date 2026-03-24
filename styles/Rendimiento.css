@@ -857,6 +857,30 @@ body {
     text-align: center;
 }
 
+/* ════════════════════════════════════
+   RAW DATA TABLE (ALL COLUMNS)
+════════════════════════════════════ */
+.raw-data-panel {
+    padding: 0 2rem 2rem;
+}
+
+.raw-table-wrapper {
+    max-height: 500px;
+    padding-bottom: 0.5rem;
+}
+
+.raw-table th,
+.raw-table td {
+    padding: 0.6rem 1rem;
+    white-space: nowrap;
+    font-size: 0.75rem;
+}
+
+.raw-table th {
+    font-family: var(--font);
+    font-size: 0.67rem;
+}
+
 /* ═══════════════════════════════════════════════════════════════
    SKELETON LOADING
 ═══════════════════════════════════════════════════════════════ */
