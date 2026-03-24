@@ -6,14 +6,19 @@ geotab.addin.rendimiento = function () {
     let customFromDate = null;
     let customToDate = null;
     let isCustomRange = false;
-    let allRecords = [];
+    let allRecords = [];       // Processed performance records (per device)
     let filteredRecords = [];
+    let rawStatusData = [];    // Raw StatusData for the raw table
 
     // Chart instances
     let chartEffByUnit, chartTrend, chartDistribution, chartScatter;
 
     // DOM refs
     let btnRefresh, lastUpdatedEl, errorToast, errorToastMsg, searchInput;
+
+    // Geotab Diagnostic IDs
+    const DIAG_FUEL_USED = "DiagnosticDeviceTotalFuelId";
+    const DIAG_ODOMETER = "DiagnosticOdometerId";
 
     // ─── Helpers ─────────────────────────────────────────────────────────────
     const getDateRange = () => {
@@ -38,21 +43,25 @@ geotab.addin.rendimiento = function () {
         return d.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
     };
 
+    const formatDateTime = (isoStr) => {
+        if (!isoStr) return "—";
+        const d = new Date(isoStr);
+        return d.toLocaleString("es-MX", {
+            day: "2-digit", month: "short", year: "numeric",
+            hour: "2-digit", minute: "2-digit"
+        });
+    };
+
     const formatOdometer = (meters) => {
         if (!meters && meters !== 0) return "—";
         return `${Math.round(meters / 1000).toLocaleString("es-MX")} km`;
     };
 
     const getDeviceName = (record) => {
+        if (record.deviceName) return record.deviceName;
         return (record.device && record.device.name)
             ? record.device.name
             : (record.device && record.device.id ? record.device.id : "Desconocido");
-    };
-
-    const getDriverName = (record) => {
-        return (record.driver && record.driver.name)
-            ? record.driver.name
-            : (record.driver && record.driver.id && record.driver.id !== "UnknownDriverId" ? record.driver.id : "Desconocido");
     };
 
     const showError = (msg) => {
@@ -76,35 +85,6 @@ geotab.addin.rendimiento = function () {
         requestAnimationFrame(step);
     };
 
-    // ─── Compute performance data from FuelUsage ─────────────────────────────
-    // Each FuelUsage record has: device, driver, dateTime, volume (liters used), distance (meters), odometer
-    const computePerformanceData = (records) => {
-        const byDevice = {};
-
-        records.forEach(r => {
-            const name = getDeviceName(r);
-            if (!byDevice[name]) {
-                byDevice[name] = { name, totalDistance: 0, totalFuel: 0, records: [], drivers: new Set() };
-            }
-            const dist = parseFloat(r.distance) || 0; // meters
-            const fuel = parseFloat(r.volume) || 0;   // liters
-            byDevice[name].totalDistance += dist;
-            byDevice[name].totalFuel += fuel;
-            byDevice[name].records.push(r);
-            const driverName = getDriverName(r);
-            if (driverName !== "Desconocido") byDevice[name].drivers.add(driverName);
-        });
-
-        // Calculate km/L for each device
-        const devices = Object.values(byDevice).map(d => {
-            const distKm = d.totalDistance / 1000;
-            const kmPerL = d.totalFuel > 0 ? distKm / d.totalFuel : 0;
-            return { ...d, distKm, kmPerL };
-        });
-
-        return devices;
-    };
-
     const getEffClass = (kmPerL) => {
         if (kmPerL >= 12) return "eff-excellent";
         if (kmPerL >= 8) return "eff-good";
@@ -112,21 +92,92 @@ geotab.addin.rendimiento = function () {
         return "eff-poor";
     };
 
-    const getEffLabel = (kmPerL) => {
-        if (kmPerL >= 12) return "Excelente";
-        if (kmPerL >= 8) return "Bueno";
-        if (kmPerL >= 5) return "Regular";
-        return "Bajo";
+    // ─── Process StatusData into performance records per device ───────────────
+    const processStatusData = (fuelData, odoData, deviceMap) => {
+        // Group by device
+        const fuelByDevice = {};
+        const odoByDevice = {};
+
+        fuelData.forEach(s => {
+            const devId = s.device ? s.device.id : null;
+            if (!devId) return;
+            if (!fuelByDevice[devId]) fuelByDevice[devId] = [];
+            fuelByDevice[devId].push({ dateTime: s.dateTime, value: s.data || 0 });
+        });
+
+        odoData.forEach(s => {
+            const devId = s.device ? s.device.id : null;
+            if (!devId) return;
+            if (!odoByDevice[devId]) odoByDevice[devId] = [];
+            odoByDevice[devId].push({ dateTime: s.dateTime, value: s.data || 0 });
+        });
+
+        const perfRecords = [];
+
+        // For each device, compute fuel used and distance from first to last reading
+        const allDeviceIds = new Set([...Object.keys(fuelByDevice), ...Object.keys(odoByDevice)]);
+
+        allDeviceIds.forEach(devId => {
+            const fuelReadings = (fuelByDevice[devId] || []).sort((a, b) => new Date(a.dateTime) - new Date(b.dateTime));
+            const odoReadings = (odoByDevice[devId] || []).sort((a, b) => new Date(a.dateTime) - new Date(b.dateTime));
+
+            const deviceName = deviceMap[devId] || devId;
+
+            if (fuelReadings.length >= 2 && odoReadings.length >= 2) {
+                const fuelStart = fuelReadings[0].value;
+                const fuelEnd = fuelReadings[fuelReadings.length - 1].value;
+                const odoStart = odoReadings[0].value;
+                const odoEnd = odoReadings[odoReadings.length - 1].value;
+
+                const fuelUsed = fuelEnd - fuelStart;   // liters
+                const distMeters = odoEnd - odoStart;    // meters
+                const distKm = distMeters / 1000;
+                const kmPerL = fuelUsed > 0 ? distKm / fuelUsed : 0;
+
+                perfRecords.push({
+                    deviceId: devId,
+                    deviceName: deviceName,
+                    fuelUsed: fuelUsed > 0 ? fuelUsed : 0,
+                    distKm: distKm > 0 ? distKm : 0,
+                    kmPerL: kmPerL > 0 ? kmPerL : 0,
+                    odoStart,
+                    odoEnd,
+                    dateStart: fuelReadings[0].dateTime,
+                    dateEnd: fuelReadings[fuelReadings.length - 1].dateTime,
+                    fuelReadingsCount: fuelReadings.length,
+                    odoReadingsCount: odoReadings.length
+                });
+            } else if (odoReadings.length >= 2) {
+                const odoStart = odoReadings[0].value;
+                const odoEnd = odoReadings[odoReadings.length - 1].value;
+                const distKm = (odoEnd - odoStart) / 1000;
+
+                perfRecords.push({
+                    deviceId: devId,
+                    deviceName: deviceName,
+                    fuelUsed: 0,
+                    distKm: distKm > 0 ? distKm : 0,
+                    kmPerL: 0,
+                    odoStart,
+                    odoEnd,
+                    dateStart: odoReadings[0].dateTime,
+                    dateEnd: odoReadings[odoReadings.length - 1].dateTime,
+                    fuelReadingsCount: fuelReadings.length,
+                    odoReadingsCount: odoReadings.length
+                });
+            }
+        });
+
+        return perfRecords;
     };
 
     // ─── Render summary KPIs ─────────────────────────────────────────────────
     const renderSummary = (records) => {
-        const totalDistance = records.reduce((s, r) => s + (parseFloat(r.distance) || 0), 0);
-        const totalFuel = records.reduce((s, r) => s + (parseFloat(r.volume) || 0), 0);
-        const distKm = totalDistance / 1000;
-        const avgKmPerL = totalFuel > 0 ? distKm / totalFuel : 0;
-        const costPerKm = totalFuel > 0 ? (totalFuel * 24.5) / distKm : 0; // ~$24.5/L estimate
-        const deviceSet = new Set(records.map(r => getDeviceName(r)));
+        const totalDist = records.reduce((s, r) => s + r.distKm, 0);
+        const totalFuel = records.reduce((s, r) => s + r.fuelUsed, 0);
+        const avgKmPerL = totalFuel > 0 ? totalDist / totalFuel : 0;
+        const costPerKm = totalDist > 0 ? (totalFuel * 24.5) / totalDist : 0;
+        const unidades = records.length;
 
         const elRendimiento = document.getElementById("stat-rendimiento");
         const elDistancia = document.getElementById("stat-distancia");
@@ -135,10 +186,10 @@ geotab.addin.rendimiento = function () {
         const elUnidades = document.getElementById("stat-unidades");
 
         if (elRendimiento) { elRendimiento.classList.remove("skeleton"); animateCount(elRendimiento, avgKmPerL, 1, " km/L"); }
-        if (elDistancia) { elDistancia.classList.remove("skeleton"); animateCount(elDistancia, Math.round(distKm), 0, ""); elDistancia.textContent = Math.round(distKm).toLocaleString("es-MX"); }
+        if (elDistancia) { elDistancia.classList.remove("skeleton"); animateCount(elDistancia, Math.round(totalDist), 0, ""); }
         if (elCombustible) { elCombustible.classList.remove("skeleton"); animateCount(elCombustible, Math.round(totalFuel), 0, ""); }
         if (elCosto) { elCosto.classList.remove("skeleton"); elCosto.textContent = "$" + costPerKm.toFixed(2); }
-        if (elUnidades) { elUnidades.classList.remove("skeleton"); animateCount(elUnidades, deviceSet.size, 0, ""); }
+        if (elUnidades) { elUnidades.classList.remove("skeleton"); animateCount(elUnidades, unidades, 0, ""); }
 
         const totalBadge = document.getElementById("stat-total-badge");
         if (totalBadge) totalBadge.textContent = isCustomRange ? "rango personalizado" : `últimos ${selectedDays} días`;
@@ -146,14 +197,13 @@ geotab.addin.rendimiento = function () {
         const badgeRanking = document.getElementById("badge-ranking");
         if (badgeRanking) {
             badgeRanking.classList.remove("skeleton");
-            badgeRanking.textContent = `${deviceSet.size} unidades`;
+            badgeRanking.textContent = `${unidades} unidades`;
         }
     };
 
     // ─── Render ranking (by best km/L) ──────────────────────────────────────
     const renderRanking = (records) => {
-        const devices = computePerformanceData(records);
-        const sorted = devices
+        const sorted = [...records]
             .filter(d => d.kmPerL > 0)
             .sort((a, b) => b.kmPerL - a.kmPerL);
 
@@ -174,7 +224,7 @@ geotab.addin.rendimiento = function () {
             li.innerHTML = `
                 <div class="ranking-pos">${idx + 1}</div>
                 <div class="ranking-info">
-                    <div class="ranking-name">${item.name}</div>
+                    <div class="ranking-name">${item.deviceName}</div>
                     <div class="ranking-bar-wrap">
                         <div class="ranking-bar" style="width:${pct}%"></div>
                     </div>
@@ -205,36 +255,92 @@ geotab.addin.rendimiento = function () {
         }
         if (emptyEl) emptyEl.style.display = "none";
 
-        const sorted = [...records].sort((a, b) => new Date(b.dateTime) - new Date(a.dateTime));
+        const sorted = [...records].sort((a, b) => b.kmPerL - a.kmPerL);
 
         sorted.forEach(r => {
             const tr = document.createElement("tr");
             tr.className = "perf-row";
-            const dist = (parseFloat(r.distance) || 0) / 1000;
-            const fuel = parseFloat(r.volume) || 0;
-            const kmPerL = fuel > 0 ? dist / fuel : 0;
-            const effClass = getEffClass(kmPerL);
+            const effClass = getEffClass(r.kmPerL);
 
             tr.innerHTML = `
                 <td>
                     <div class="unit-chip">
                         <div class="unit-dot"></div>
-                        <span>${getDeviceName(r)}</span>
+                        <span>${r.deviceName}</span>
                     </div>
                 </td>
-                <td>${getDriverName(r)}</td>
                 <td>
                     <div class="date-cell">
-                        <span class="date-main">${formatDateShort(r.dateTime)}</span>
-                        <span class="date-time">${formatTimeShort(r.dateTime)}</span>
+                        <span class="date-main">${formatDateShort(r.dateStart)}</span>
+                        <span class="date-time">→ ${formatDateShort(r.dateEnd)}</span>
                     </div>
                 </td>
-                <td>${dist.toFixed(1)} km</td>
-                <td>${fuel.toFixed(1)} L</td>
+                <td>${r.distKm.toFixed(1)} km</td>
+                <td>${r.fuelUsed > 0 ? r.fuelUsed.toFixed(1) + " L" : "—"}</td>
                 <td>
-                    <span class="eff-badge ${effClass}">${kmPerL.toFixed(1)} km/L</span>
+                    <span class="eff-badge ${effClass}">${r.kmPerL > 0 ? r.kmPerL.toFixed(1) + " km/L" : "—"}</span>
                 </td>
-                <td>${formatOdometer(r.odometer)}</td>
+                <td>${formatOdometer(r.odoEnd)}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    };
+
+    // ─── Render Raw StatusData Table ──────────────────────────────────────────
+    const renderRawTable = (data, deviceMap) => {
+        const thead = document.getElementById("raw-thead");
+        const tbody = document.getElementById("raw-tbody");
+        const badgeRaw = document.getElementById("badge-raw");
+        if (!thead || !tbody) return;
+
+        if (badgeRaw) badgeRaw.textContent = `${data.length} registros`;
+
+        if (data.length === 0) {
+            thead.innerHTML = "<tr><th>Sin datos</th></tr>";
+            tbody.innerHTML = '<tr><td style="text-align:center; padding: 2rem;">No se encontraron registros en el periodo seleccionado.</td></tr>';
+            return;
+        }
+
+        // Define columns
+        thead.innerHTML = "";
+        const trHead = document.createElement("tr");
+        const columns = ["Dispositivo", "Diagnóstico ID", "Fecha y Hora", "Valor (data)", "Unidad", "ID"];
+        columns.forEach(col => {
+            const th = document.createElement("th");
+            th.textContent = col;
+            trHead.appendChild(th);
+        });
+        thead.appendChild(trHead);
+
+        // Body — show all StatusData records
+        tbody.innerHTML = "";
+        const sorted = [...data].sort((a, b) => new Date(b.dateTime) - new Date(a.dateTime));
+
+        sorted.forEach(s => {
+            const tr = document.createElement("tr");
+            const devId = s.device ? s.device.id : "—";
+            const devName = deviceMap[devId] || devId;
+            const diagId = s.diagnostic ? s.diagnostic.id : "—";
+            const dateStr = formatDateTime(s.dateTime);
+            const value = s.data !== undefined && s.data !== null ? s.data : "—";
+
+            // Determine unit based on diagnostic
+            let unit = "—";
+            if (diagId.toLowerCase().includes("fuel")) unit = "L";
+            else if (diagId.toLowerCase().includes("odometer")) unit = "m";
+            else if (diagId.toLowerCase().includes("speed")) unit = "km/h";
+            else if (diagId.toLowerCase().includes("rpm")) unit = "RPM";
+            else if (diagId.toLowerCase().includes("temp")) unit = "°C";
+
+            const rid = s.id || "—";
+
+            tr.innerHTML = `
+                <td>${devName}</td>
+                <td style="font-family:monospace; font-size:0.72rem;">${diagId}</td>
+                <td>${dateStr}</td>
+                <td style="font-weight:700; text-align:right;">${typeof value === "number" ? value.toLocaleString("es-MX", { maximumFractionDigits: 2 }) : value}</td>
+                <td>${unit}</td>
+                <td style="font-family:monospace; font-size:0.7rem; color:var(--color-text-muted);">${rid}</td>
             `;
             tbody.appendChild(tr);
         });
@@ -261,11 +367,11 @@ geotab.addin.rendimiento = function () {
 
         const tbody = document.getElementById("perf-tbody");
         if (tbody) tbody.innerHTML = `
-            <tr class="tr-skeleton"><td colspan="7"><div class="td-skel"></div></td></tr>
-            <tr class="tr-skeleton"><td colspan="7"><div class="td-skel"></div></td></tr>
-            <tr class="tr-skeleton"><td colspan="7"><div class="td-skel"></div></td></tr>
-            <tr class="tr-skeleton"><td colspan="7"><div class="td-skel"></div></td></tr>
-            <tr class="tr-skeleton"><td colspan="7"><div class="td-skel"></div></td></tr>
+            <tr class="tr-skeleton"><td colspan="6"><div class="td-skel"></div></td></tr>
+            <tr class="tr-skeleton"><td colspan="6"><div class="td-skel"></div></td></tr>
+            <tr class="tr-skeleton"><td colspan="6"><div class="td-skel"></div></td></tr>
+            <tr class="tr-skeleton"><td colspan="6"><div class="td-skel"></div></td></tr>
+            <tr class="tr-skeleton"><td colspan="6"><div class="td-skel"></div></td></tr>
         `;
 
         const badgeTable = document.getElementById("badge-table");
@@ -273,6 +379,12 @@ geotab.addin.rendimiento = function () {
 
         const emptyEl = document.getElementById("table-empty");
         if (emptyEl) emptyEl.style.display = "none";
+
+        // Raw table
+        const rawThead = document.getElementById("raw-thead");
+        const rawTbody = document.getElementById("raw-tbody");
+        if (rawThead) rawThead.innerHTML = `<tr><th>Cargando...</th></tr>`;
+        if (rawTbody) rawTbody.innerHTML = `<tr class="tr-skeleton"><td><div class="td-skel"></div></td></tr>`;
 
         if (searchInput) searchInput.value = "";
     };
@@ -286,7 +398,6 @@ geotab.addin.rendimiento = function () {
         const cGreen = "#3b753c";
         const cOrange = "#f29300";
         const cRed = "#cc0000";
-        const cPurple = "#813896";
         const textMuted = "#5e6c84";
         const fontFamily = "'Inter', sans-serif";
 
@@ -296,10 +407,8 @@ geotab.addin.rendimiento = function () {
             tooltip: { theme: 'light' }
         };
 
-        const devices = computePerformanceData(records);
-
-        // 1. Rendimiento por Unidad (horizontal bar chart)
-        const sortedByEff = [...devices].filter(d => d.kmPerL > 0).sort((a, b) => b.kmPerL - a.kmPerL).slice(0, 15);
+        // 1. Rendimiento por Unidad (horizontal bar)
+        const sortedByEff = [...records].filter(d => d.kmPerL > 0).sort((a, b) => b.kmPerL - a.kmPerL).slice(0, 15);
         const optEffByUnit = {
             ...commonOptions,
             series: [{ name: 'km/L', data: sortedByEff.map(d => parseFloat(d.kmPerL.toFixed(1))) }],
@@ -320,7 +429,7 @@ geotab.addin.rendimiento = function () {
                 formatter: val => val + " km/L",
                 style: { colors: [textMuted], fontSize: '10px', fontWeight: 600 }
             },
-            xaxis: { categories: sortedByEff.map(d => d.name), labels: { style: { colors: textMuted } } },
+            xaxis: { categories: sortedByEff.map(d => d.deviceName), labels: { style: { colors: textMuted } } },
             yaxis: { labels: { style: { colors: textMuted, fontSize: '11px' } } },
             legend: { show: false },
             noData: { text: "No hay datos", align: 'center', verticalAlign: 'middle', style: { color: textMuted } }
@@ -330,38 +439,24 @@ geotab.addin.rendimiento = function () {
         chartEffByUnit = new ApexCharts(document.querySelector("#chart-eff-unit"), optEffByUnit);
         chartEffByUnit.render();
 
-        // 2. Tendencia de Rendimiento (line chart — daily avg km/L)
-        const dailyData = {};
-        records.forEach(r => {
-            if (!r.dateTime) return;
-            const d = new Date(r.dateTime);
-            const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-            if (!dailyData[key]) dailyData[key] = { totalDist: 0, totalFuel: 0 };
-            dailyData[key].totalDist += (parseFloat(r.distance) || 0) / 1000;
-            dailyData[key].totalFuel += parseFloat(r.volume) || 0;
-        });
-
-        const sortedDays = Object.keys(dailyData).sort();
-        const trendSeries = sortedDays.map(k => {
-            const d = dailyData[k];
-            return d.totalFuel > 0 ? parseFloat((d.totalDist / d.totalFuel).toFixed(1)) : 0;
-        });
+        // 2. Tendencia de Rendimiento (bar chart: km/L por unidad)
+        const withFuel = records.filter(d => d.kmPerL > 0);
+        const categories = withFuel.map(d => d.deviceName);
+        const distSeries = withFuel.map(d => parseFloat(d.distKm.toFixed(1)));
+        const fuelSeries = withFuel.map(d => parseFloat(d.fuelUsed.toFixed(1)));
 
         const optTrend = {
             ...commonOptions,
-            series: [{ name: 'km/L Promedio', data: trendSeries }],
-            chart: { type: 'area', height: 260, toolbar: { show: false }, zoom: { enabled: false } },
-            colors: [cGreen],
-            fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0.05, stops: [0, 100] } },
-            stroke: { curve: 'smooth', width: 2.5 },
-            xaxis: {
-                categories: sortedDays.map(k => {
-                    const parts = k.split('-');
-                    return `${parts[2]}/${parts[1]}`;
-                }),
-                labels: { style: { colors: textMuted }, rotate: -45, rotateAlways: sortedDays.length > 10 }
-            },
-            yaxis: { labels: { formatter: val => val + " km/L", style: { colors: textMuted } } },
+            series: [
+                { name: 'Distancia (km)', data: distSeries },
+                { name: 'Combustible (L)', data: fuelSeries }
+            ],
+            chart: { type: 'bar', height: 260, toolbar: { show: false }, stacked: false },
+            colors: [cCyan, cOrange],
+            plotOptions: { bar: { borderRadius: 3, columnWidth: '55%' } },
+            xaxis: { categories, labels: { style: { colors: textMuted, fontSize: '10px' }, rotate: -45 } },
+            yaxis: { labels: { style: { colors: textMuted } } },
+            legend: { position: 'top', fontSize: '11px' },
             noData: { text: "No hay datos", align: 'center', verticalAlign: 'middle', style: { color: textMuted } }
         };
 
@@ -369,9 +464,9 @@ geotab.addin.rendimiento = function () {
         chartTrend = new ApexCharts(document.querySelector("#chart-trend"), optTrend);
         chartTrend.render();
 
-        // 3. Distribución de Eficiencia (donut chart)
+        // 3. Distribución de Eficiencia (donut)
         const effCounts = { Excelente: 0, Bueno: 0, Regular: 0, Bajo: 0 };
-        devices.forEach(d => {
+        records.forEach(d => {
             if (d.kmPerL <= 0) return;
             if (d.kmPerL >= 12) effCounts.Excelente++;
             else if (d.kmPerL >= 8) effCounts.Bueno++;
@@ -408,13 +503,10 @@ geotab.addin.rendimiento = function () {
         chartDistribution = new ApexCharts(document.querySelector("#chart-distribution"), optDist);
         chartDistribution.render();
 
-        // 4. Consumo vs Distancia (scatter chart)
-        const scatterData = devices
-            .filter(d => d.totalFuel > 0 && d.distKm > 0)
-            .map(d => ({
-                x: parseFloat(d.distKm.toFixed(1)),
-                y: parseFloat(d.totalFuel.toFixed(1))
-            }));
+        // 4. Consumo vs Distancia (scatter)
+        const scatterData = records
+            .filter(d => d.fuelUsed > 0 && d.distKm > 0)
+            .map(d => ({ x: parseFloat(d.distKm.toFixed(1)), y: parseFloat(d.fuelUsed.toFixed(1)) }));
 
         const optScatter = {
             ...commonOptions,
@@ -455,7 +547,7 @@ geotab.addin.rendimiento = function () {
             filteredRecords = [...allRecords];
         } else {
             const q = query.trim().toLowerCase();
-            filteredRecords = allRecords.filter(r => getDeviceName(r).toLowerCase().includes(q));
+            filteredRecords = allRecords.filter(r => r.deviceName.toLowerCase().includes(q));
         }
         renderTable(filteredRecords);
         renderCharts(filteredRecords);
@@ -472,29 +564,51 @@ geotab.addin.rendimiento = function () {
         const { fromDate, toDate } = getDateRange();
 
         api.multiCall([
-            ["Get", { typeName: "FuelUsage", search: { fromDate, toDate } }],
+            ["Get", {
+                typeName: "StatusData",
+                search: {
+                    fromDate,
+                    toDate,
+                    diagnosticSearch: { id: DIAG_FUEL_USED }
+                }
+            }],
+            ["Get", {
+                typeName: "StatusData",
+                search: {
+                    fromDate,
+                    toDate,
+                    diagnosticSearch: { id: DIAG_ODOMETER }
+                }
+            }],
             ["Get", { typeName: "Device" }]
         ], (results) => {
-            const raw = results[0] || [];
-            const devices = results[1] || [];
+            const fuelData = results[0] || [];
+            const odoData = results[1] || [];
+            const devices = results[2] || [];
 
             // Map device ids to names
             const deviceMap = {};
             devices.forEach(d => { deviceMap[d.id] = d.name; });
 
-            raw.forEach(r => {
-                if (r.device && r.device.id && deviceMap[r.device.id]) {
-                    r.device.name = deviceMap[r.device.id];
+            // Store all raw StatusData for the raw table
+            rawStatusData = [...fuelData, ...odoData];
+
+            // Enrich raw data with device names
+            rawStatusData.forEach(s => {
+                if (s.device && s.device.id && deviceMap[s.device.id]) {
+                    s.device.name = deviceMap[s.device.id];
                 }
             });
 
-            allRecords = raw;
+            // Process into performance records
+            allRecords = processStatusData(fuelData, odoData, deviceMap);
             filteredRecords = [...allRecords];
 
             renderSummary(allRecords);
             renderRanking(allRecords);
             renderTable(filteredRecords);
             renderCharts(filteredRecords);
+            renderRawTable(rawStatusData, deviceMap);
 
             if (window.lucide) {
                 lucide.createIcons();
@@ -530,7 +644,7 @@ geotab.addin.rendimiento = function () {
             errorToastMsg = document.getElementById("error-toast-msg");
             searchInput = document.getElementById("search-input");
 
-            // ── Pre-set date range buttons ────────────────────────────────
+            // ── Pre-set date range buttons
             document.querySelectorAll(".btn-range[data-days]").forEach(btn => {
                 btn.addEventListener("click", () => {
                     document.querySelectorAll(".btn-range").forEach(b => b.classList.remove("active"));
@@ -551,7 +665,7 @@ geotab.addin.rendimiento = function () {
                 });
             });
 
-            // ── Custom date range popover ────────────────────────────────
+            // ── Custom date range popover
             const btnCustom = document.getElementById("btn-custom");
             const datePopover = document.getElementById("date-popover");
             const dateFromInput = document.getElementById("date-from");
@@ -603,7 +717,7 @@ geotab.addin.rendimiento = function () {
 
             dateFromInput.addEventListener("change", () => { dateToInput.min = dateFromInput.value; });
 
-            // ── Search box ────────────────────────────────────────────────
+            // ── Search box
             if (searchInput) {
                 let searchTimer = null;
                 searchInput.addEventListener("input", () => {
