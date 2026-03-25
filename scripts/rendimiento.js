@@ -14,7 +14,8 @@ geotab.addin.rendimiento = function () {
     let chartEffByUnit, chartTrend, chartDistribution, chartScatter;
 
     // DOM refs
-    let btnRefresh, lastUpdatedEl, errorToast, errorToastMsg, searchInput;
+    let btnRefresh, lastUpdatedEl, errorToast, errorToastMsg, searchInput, tripsSearchInput;
+    let allTrips = [], filteredTrips = [];
 
     // ─── Helpers ─────────────────────────────────────────────────────────────
     const getDateRange = () => {
@@ -256,6 +257,94 @@ geotab.addin.rendimiento = function () {
         });
     };
 
+    // ─── Render Trips Performance Table ──────────────────────────────────────
+    const renderTripsTable = (trips) => {
+        const tbody = document.getElementById("trips-tbody");
+        const emptyEl = document.getElementById("trips-empty");
+        const badgeTrips = document.getElementById("badge-trips");
+
+        if (!tbody) return;
+        tbody.innerHTML = "";
+        if (badgeTrips) badgeTrips.textContent = `${trips.length} viajes`;
+
+        if (trips.length === 0) {
+            if (emptyEl) emptyEl.style.display = "flex";
+            return;
+        }
+        if (emptyEl) emptyEl.style.display = "none";
+
+        trips.forEach(t => {
+            const tr = document.createElement("tr");
+            tr.className = "perf-row";
+            const eff = t.fuelUsed > 0 ? (t.distance / t.fuelUsed) : 0;
+            const effClass = getEffClass(eff);
+
+            tr.innerHTML = `
+                <td>
+                    <div class="unit-chip">
+                        <div class="unit-dot" style="background: var(--c-purple);"></div>
+                        <span>${t.deviceName}</span>
+                    </div>
+                </td>
+                <td>
+                    <div class="date-cell">
+                        <span class="date-main">${formatDateShort(t.start)}</span>
+                        <span class="date-time">${formatTimeShort(t.start)}</span>
+                    </div>
+                </td>
+                <td>
+                    <div class="date-cell">
+                        <span class="date-main">${formatDateShort(t.stop)}</span>
+                        <span class="date-time">${formatTimeShort(t.stop)}</span>
+                    </div>
+                </td>
+                <td style="font-weight:600;">${(t.distance / 1000).toFixed(1)} km</td>
+                <td style="color:var(--c-blue); font-weight:600;">${t.fuelUsed > 0 ? t.fuelUsed.toFixed(2) + " L" : "—"}</td>
+                <td>
+                    <span class="eff-badge ${effClass}">${eff > 0 ? eff.toFixed(1) + " km/L" : "—"}</span>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    };
+
+    // ─── Process Trips and FuelUsed ──────────────────────────────────────────
+    const processTripsData = (trips, fuelUsedData, deviceMap) => {
+        const fuelByDevice = {};
+        fuelUsedData.forEach(f => {
+            const devId = f.device ? f.device.id : null;
+            if (!devId) return;
+            if (!fuelByDevice[devId]) fuelByDevice[devId] = [];
+            fuelByDevice[devId].push(f);
+        });
+
+        return trips.map(trip => {
+            const devId = trip.device ? trip.device.id : null;
+            const deviceName = deviceMap[devId] || devId || "Desconocido";
+            const tripStart = new Date(trip.start).getTime();
+            const tripStop = new Date(trip.stop).getTime();
+            
+            let tripFuel = 0;
+            if (fuelByDevice[devId]) {
+                const matchingFuel = fuelByDevice[devId].filter(f => {
+                    const dt = new Date(f.dateTime).getTime();
+                    return dt >= tripStart && dt <= tripStop;
+                });
+                tripFuel = matchingFuel.reduce((sum, f) => sum + (f.fuelUsed || 0), 0);
+            }
+
+            return {
+                id: trip.id,
+                deviceId: devId,
+                deviceName: deviceName,
+                start: trip.start,
+                stop: trip.stop,
+                distance: trip.distance || 0,
+                fuelUsed: tripFuel
+            };
+        }).filter(t => t.distance > 100);
+    };
+
     // ─── Render Raw StatusData Table ──────────────────────────────────────────
     const renderRawTable = (data, deviceMap) => {
         const thead = document.getElementById("raw-thead");
@@ -341,7 +430,14 @@ geotab.addin.rendimiento = function () {
         if (rawThead) rawThead.innerHTML = `<tr><th>Cargando StatusData...</th></tr>`;
         if (rawTbody) rawTbody.innerHTML = Array(3).fill('<tr class="tr-skeleton"><td><div class="td-skel"></div></td></tr>').join("");
 
+        const tripsTbody = document.getElementById("trips-tbody");
+        if (tripsTbody) tripsTbody.innerHTML = Array(3).fill('<tr class="tr-skeleton"><td colspan="6"><div class="td-skel"></div></td></tr>').join("");
+
+        const badgeTrips = document.getElementById("badge-trips");
+        if (badgeTrips) badgeTrips.textContent = "—";
+
         if (searchInput) searchInput.value = "";
+        if (tripsSearchInput) tripsSearchInput.value = "";
     };
 
     // ─── Render Charts ────────────────────────────────────────────────────────
@@ -466,6 +562,16 @@ geotab.addin.rendimiento = function () {
         renderCharts(filteredRecords);
     };
 
+    const applyTripsSearch = (query) => {
+        if (!query || query.trim() === "") {
+            filteredTrips = [...allTrips];
+        } else {
+            const q = query.trim().toLowerCase();
+            filteredTrips = allTrips.filter(t => t.deviceName.toLowerCase().includes(q));
+        }
+        renderTripsTable(filteredTrips);
+    };
+
     // ─── MAIN DATA LOADER ─────────────────────────────────────────────────────
     const loadData = () => {
         resetUI();
@@ -492,11 +598,27 @@ geotab.addin.rendimiento = function () {
                     diagnosticSearch: { id: "DiagnosticOdometerId" }
                 }
             }],
+            ["Get", {
+                typeName: "Trip",
+                search: {
+                    fromDate: fromDate,
+                    toDate: toDate
+                }
+            }],
+            ["Get", {
+                typeName: "FuelUsed",
+                search: {
+                    fromDate: fromDate,
+                    toDate: toDate
+                }
+            }],
             ["Get", { typeName: "Device" }]
         ], function (results) {
             var fuelData = results[0] || [];
             var odoData = results[1] || [];
-            var devices = results[2] || [];
+            var tripsRaw = results[2] || [];
+            var fuelUsedRaw = results[3] || [];
+            var devices = results[4] || [];
 
             // Build device map (id -> name)
             var deviceMap = {};
@@ -521,15 +643,23 @@ geotab.addin.rendimiento = function () {
             allRecords = processStatusData(fuelData, odoData, deviceMap);
             filteredRecords = allRecords.slice();
 
+            // Process Trips Performance
+            allTrips = processTripsData(tripsRaw, fuelUsedRaw, deviceMap);
+            filteredTrips = allTrips.slice();
+
             console.log("[Rendimiento] Fuel StatusData records:", fuelData.length);
             console.log("[Rendimiento] Odometer StatusData records:", odoData.length);
+            console.log("[Rendimiento] Trips raw:", tripsRaw.length);
+            console.log("[Rendimiento] FuelUsed raw:", fuelUsedRaw.length);
             console.log("[Rendimiento] Devices:", devices.length);
             console.log("[Rendimiento] Performance records:", allRecords.length);
+            console.log("[Rendimiento] Processed Trips:", allTrips.length);
 
             renderSummary(allRecords);
             renderRanking(allRecords);
             renderTable(filteredRecords);
             renderCharts(filteredRecords);
+            renderTripsTable(filteredTrips);
             renderRawTable(rawStatusData, deviceMap);
 
             if (window.lucide) {
@@ -565,6 +695,7 @@ geotab.addin.rendimiento = function () {
             errorToast = document.getElementById("error-toast");
             errorToastMsg = document.getElementById("error-toast-msg");
             searchInput = document.getElementById("search-input");
+            tripsSearchInput = document.getElementById("trips-search-input");
 
             // Date range buttons
             document.querySelectorAll(".btn-range[data-days]").forEach(function (btn) {
@@ -640,6 +771,13 @@ geotab.addin.rendimiento = function () {
                 searchInput.addEventListener("input", function () {
                     clearTimeout(searchTimer);
                     searchTimer = setTimeout(function () { applySearch(searchInput.value); }, 250);
+                });
+            }
+            if (tripsSearchInput) {
+                var tripsSearchTimer = null;
+                tripsSearchInput.addEventListener("input", function () {
+                    clearTimeout(tripsSearchTimer);
+                    tripsSearchTimer = setTimeout(function () { applyTripsSearch(tripsSearchInput.value); }, 250);
                 });
             }
 
