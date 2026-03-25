@@ -54,6 +54,21 @@ geotab.addin.rendimiento = function () {
         return Math.round(meters / 1000).toLocaleString("es-MX") + " km";
     };
 
+    const formatDuration = (timeSpan) => {
+        if (!timeSpan) return "0s";
+        // Geotab spans are often strings like "00:30:15.0000000"
+        const parts = timeSpan.split(':');
+        if (parts.length < 3) return timeSpan;
+        const h = parseInt(parts[0], 10);
+        const m = parseInt(parts[1], 10);
+        const s = Math.round(parseFloat(parts[2]));
+        const res = [];
+        if (h > 0) res.push(h + "h");
+        if (m > 0) res.push(m + "m");
+        if (s > 0 || res.length === 0) res.push(s + "s");
+        return res.join(" ");
+    };
+
     const showError = (msg) => {
         errorToastMsg.textContent = msg;
         errorToast.style.display = "flex";
@@ -298,6 +313,9 @@ geotab.addin.rendimiento = function () {
                         <span class="date-time">${formatTimeShort(t.stop)}</span>
                     </div>
                 </td>
+                <td>${formatDuration(t.drivingDuration)}</td>
+                <td>${formatDuration(t.stopDuration)}</td>
+                <td>${t.maxSpeed ? Math.round(t.maxSpeed) + " km/h" : "—"}</td>
                 <td style="font-weight:600;">${(t.distance / 1000).toFixed(1)} km</td>
                 <td style="color:var(--c-blue); font-weight:600;">${t.fuelUsed > 0 ? t.fuelUsed.toFixed(2) + " L" : "—"}</td>
                 <td>
@@ -340,6 +358,9 @@ geotab.addin.rendimiento = function () {
                 start: trip.start,
                 stop: trip.stop,
                 distance: trip.distance || 0,
+                drivingDuration: trip.drivingDuration,
+                stopDuration: trip.stopDuration,
+                maxSpeed: trip.maximumSpeed,
                 fuelUsed: tripFuel
             };
         }).filter(t => t.distance > 100);
