@@ -860,6 +860,17 @@ body {
 /* ════════════════════════════════════
    RAW DATA TABLE (ALL COLUMNS)
 ════════════════════════════════════ */
+/* ════════════════════════════════════
+   TRIPS PERFORMANCE TABLE
+════════════════════════════════════ */
+.trips-panel {
+    padding: 0 2rem 1.5rem;
+}
+
+.trips-panel .table-wrapper {
+    max-height: 500px;
+}
+
 .raw-data-panel {
     padding: 0 2rem 2rem;
 }
