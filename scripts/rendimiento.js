@@ -9,6 +9,8 @@ geotab.addin.rendimiento = function () {
     let allRecords = [];       // Processed performance records (per device)
     let filteredRecords = [];
     let rawStatusData = [];    // Raw StatusData for the raw table
+    let selectedUnitId = "all"; // "all" or specific device ID
+    let deviceMap = {};        // Global device map
 
     // Chart instances
     let chartEffByUnit, chartTrend, chartDistribution, chartScatter;
@@ -373,9 +375,14 @@ geotab.addin.rendimiento = function () {
         const badgeRaw = document.getElementById("badge-raw");
         if (!thead || !tbody) return;
 
-        if (badgeRaw) badgeRaw.textContent = `${data.length} registros`;
+        let filteredData = data;
+        if (selectedUnitId !== "all") {
+            filteredData = data.filter(s => s.device && s.device.id === selectedUnitId);
+        }
 
-        if (data.length === 0) {
+        if (badgeRaw) badgeRaw.textContent = `${filteredData.length} registros`;
+
+        if (filteredData.length === 0) {
             thead.innerHTML = "<tr><th>Sin datos</th></tr>";
             tbody.innerHTML = '<tr><td style="text-align:center; padding: 2rem;">No se encontraron registros de StatusData en el periodo seleccionado.</td></tr>';
             return;
@@ -393,7 +400,7 @@ geotab.addin.rendimiento = function () {
 
         // Body
         tbody.innerHTML = "";
-        const sorted = [...data].sort((a, b) => new Date(b.dateTime) - new Date(a.dateTime));
+        const sorted = [...filteredData].sort((a, b) => new Date(b.dateTime) - new Date(a.dateTime));
 
         sorted.forEach(s => {
             const tr = document.createElement("tr");
@@ -573,24 +580,85 @@ geotab.addin.rendimiento = function () {
 
     // ─── Filter by search ─────────────────────────────────────────────────────
     const applySearch = (query) => {
-        if (!query || query.trim() === "") {
-            filteredRecords = [...allRecords];
-        } else {
-            const q = query.trim().toLowerCase();
-            filteredRecords = allRecords.filter(r => r.deviceName.toLowerCase().includes(q));
+        let records = [...allRecords];
+        if (selectedUnitId !== "all") {
+            records = records.filter(r => r.deviceId === selectedUnitId);
         }
+        if (query && query.trim() !== "") {
+            const q = query.trim().toLowerCase();
+            records = records.filter(r => r.deviceName.toLowerCase().includes(q));
+        }
+        filteredRecords = records;
         renderTable(filteredRecords);
         renderCharts(filteredRecords);
     };
 
     const applyTripsSearch = (query) => {
-        if (!query || query.trim() === "") {
+        let trips = [...allTrips];
+        if (selectedUnitId !== "all") {
+            trips = trips.filter(t => t.deviceId === selectedUnitId);
+        }
+        if (query && query.trim() !== "") {
+            const q = query.trim().toLowerCase();
+            trips = trips.filter(t => t.deviceName.toLowerCase().includes(q));
+        }
+        filteredTrips = trips;
+        renderTripsTable(filteredTrips);
+    };
+
+    const populateUnitFilter = (devices) => {
+        const select = document.getElementById("unit-select");
+        if (!select) return;
+        
+        // Save current selection if possible
+        const currentVal = select.value;
+        
+        // Clear and add "All"
+        select.innerHTML = '<option value="all">Todas las Unidades</option>';
+        
+        // Sort devices by name
+        const sortedDevices = [...devices].sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+        
+        sortedDevices.forEach(d => {
+            const opt = document.createElement("option");
+            opt.value = d.id;
+            opt.textContent = d.name || d.id;
+            select.appendChild(opt);
+        });
+        
+        // Restore selection if it still exists
+        if ([...select.options].some(o => o.value === currentVal)) {
+            select.value = currentVal;
+        } else {
+            selectedUnitId = "all";
+        }
+    };
+
+    const applyUnitFilter = () => {
+        // Filter performance records
+        if (selectedUnitId === "all") {
+            filteredRecords = [...allRecords];
             filteredTrips = [...allTrips];
         } else {
-            const q = query.trim().toLowerCase();
-            filteredTrips = allTrips.filter(t => t.deviceName.toLowerCase().includes(q));
+            filteredRecords = allRecords.filter(r => r.deviceId === selectedUnitId);
+            filteredTrips = allTrips.filter(t => t.deviceId === selectedUnitId);
         }
-        renderTripsTable(filteredTrips);
+
+        // Apply any existing search terms
+        if (searchInput && searchInput.value) applySearch(searchInput.value);
+        else {
+            renderTable(filteredRecords);
+            renderCharts(filteredRecords);
+        }
+
+        if (tripsSearchInput && tripsSearchInput.value) applyTripsSearch(tripsSearchInput.value);
+        else renderTripsTable(filteredTrips);
+
+        // Update Summary (KPIs) with filtered records
+        renderSummary(filteredRecords);
+
+        // Update Raw Table (filtered by unit)
+        renderRawTable(rawStatusData, deviceMap);
     };
 
     // ─── MAIN DATA LOADER ─────────────────────────────────────────────────────
@@ -642,8 +710,11 @@ geotab.addin.rendimiento = function () {
             var devices = results[4] || [];
 
             // Build device map (id -> name)
-            var deviceMap = {};
+            deviceMap = {};
             devices.forEach(function (d) { deviceMap[d.id] = d.name; });
+
+            // Populate unit filter dropdown
+            populateUnitFilter(devices);
 
             // Enrich StatusData with device names
             fuelData.forEach(function (s) {
@@ -683,6 +754,11 @@ geotab.addin.rendimiento = function () {
             renderTripsTable(filteredTrips);
             renderRawTable(rawStatusData, deviceMap);
 
+            // Trigger filtering if unit was already selected
+            if (selectedUnitId !== "all") {
+                applyUnitFilter();
+            }
+
             if (window.lucide) {
                 lucide.createIcons();
             }
@@ -717,6 +793,15 @@ geotab.addin.rendimiento = function () {
             errorToastMsg = document.getElementById("error-toast-msg");
             searchInput = document.getElementById("search-input");
             tripsSearchInput = document.getElementById("trips-search-input");
+            const unitSelect = document.getElementById("unit-select");
+
+            // Unit Filter Event
+            if (unitSelect) {
+                unitSelect.addEventListener("change", function () {
+                    selectedUnitId = unitSelect.value;
+                    applyUnitFilter();
+                });
+            }
 
             // Date range buttons
             document.querySelectorAll(".btn-range[data-days]").forEach(function (btn) {
