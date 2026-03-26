@@ -336,6 +336,48 @@ body {
     white-space: nowrap;
 }
 
+/* ── Unit Filter ── */
+.unit-filter-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: #ffffff;
+    border: 1px solid var(--color-panel-border);
+    border-radius: var(--radius-md);
+    padding: 0 0.75rem;
+    height: 34px; /* Matches btn-range height */
+    transition: all 0.2s ease;
+}
+
+.unit-filter-group:hover, .unit-filter-group:focus-within {
+    border-color: var(--c-cyan);
+    box-shadow: 0 0 0 2px var(--c-cyan-glow);
+}
+
+.unit-filter-group svg {
+    color: var(--color-text-muted);
+}
+
+.unit-select {
+    background: transparent;
+    border: none;
+    color: var(--color-text-main);
+    font-family: var(--font);
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0;
+    cursor: pointer;
+    outline: none;
+    max-width: 200px;
+    text-overflow: ellipsis;
+}
+
+.unit-select option {
+    background: #ffffff;
+    color: var(--color-text-main);
+    font-weight: 500;
+}
+
 /* ═══════════════════════════════════════════════════════════════
    SUMMARY STRIP
 ═══════════════════════════════════════════════════════════════ */
