@@ -303,6 +303,7 @@ geotab.addin.rendimiento = function () {
                         <span>${t.deviceName}</span>
                     </div>
                 </td>
+                <td style="font-size:0.75rem;">${t.driverName}</td>
                 <td>
                     <div class="date-cell">
                         <span class="date-main">${formatDateShort(t.start)}</span>
@@ -315,21 +316,39 @@ geotab.addin.rendimiento = function () {
                         <span class="date-time">${formatTimeShort(t.stop)}</span>
                     </div>
                 </td>
-                <td>${formatDuration(t.drivingDuration)}</td>
-                <td>${formatDuration(t.stopDuration)}</td>
-                <td>${t.maxSpeed ? Math.round(t.maxSpeed) + " km/h" : "—"}</td>
-                <td style="font-weight:600;">${(t.distance / 1000).toFixed(1)} km</td>
-                <td style="color:var(--c-blue); font-weight:600;">${t.fuelUsed > 0 ? t.fuelUsed.toFixed(2) + " L" : "—"}</td>
-                <td>
+                <td style="font-weight:600; text-align:right;">${(t.distance / 1000).toFixed(1)} km</td>
+                <td style="text-align:right;">${t.maxSpeed ? Math.round(t.maxSpeed) + " km/h" : "—"}</td>
+                <td style="text-align:right;">${t.averageSpeed ? Math.round(t.averageSpeed) + " km/h" : "—"}</td>
+                <td style="text-align:right;">${formatDuration(t.drivingDuration)}</td>
+                <td style="text-align:right;">${formatDuration(t.stopDuration)}</td>
+                <td style="color:var(--c-blue); font-weight:600; text-align:right;">${t.fuelUsed > 0 ? t.fuelUsed.toFixed(2) + " L" : "—"}</td>
+                <td style="text-align:center;">
                     <span class="eff-badge ${effClass}">${eff > 0 ? eff.toFixed(1) + " km/L" : "—"}</span>
                 </td>
+                <td style="text-align:right;">${(t.workDistance / 1000).toFixed(1)} km</td>
+                <td style="text-align:right;">${formatDuration(t.workDrivingDuration)}</td>
+                <td style="text-align:right;">${(t.afterHoursDistance / 1000).toFixed(1)} km</td>
+                <td style="text-align:right;">${formatDuration(t.afterHoursDrivingDuration)}</td>
+                <td style="font-size:0.7rem; color:var(--color-text-muted);">${t.stopPoint}</td>
+                <td>
+                    ${t.isCurrent ? '<span class="eff-badge eff-average" style="background:#e6f7fb; color:#00b1e1; border-color:#00b1e1;">En curso</span>' : '<span style="color:var(--color-text-muted); font-size:0.7rem;">Finalizado</span>'}
+                </td>
+                <td style="text-align:right;">${formatDuration(t.workStopDuration)}</td>
+                <td style="text-align:right;">${formatDuration(t.afterHoursStopDuration)}</td>
+                <td style="text-align:right;">
+                    <div class="date-cell">
+                        <span class="date-main">${formatDateShort(t.nextTripStart)}</span>
+                        <span class="date-time">${formatTimeShort(t.nextTripStart)}</span>
+                    </div>
+                </td>
+                <td style="font-family:monospace; font-size:0.7rem; color:var(--color-text-muted);">${t.id}</td>
             `;
             tbody.appendChild(tr);
         });
     };
 
     // ─── Process Trips and FuelUsed ──────────────────────────────────────────
-    const processTripsData = (trips, fuelUsedData, deviceMap) => {
+    const processTripsData = (trips, fuelUsedData, deviceMap, driverMap) => {
         const fuelByDevice = {};
         fuelUsedData.forEach(f => {
             const devId = f.device ? f.device.id : null;
@@ -338,11 +357,24 @@ geotab.addin.rendimiento = function () {
             fuelByDevice[devId].push(f);
         });
 
+        // Helper to parse "00:30:15.0000000" to hours
+        const parseDurationToHours = (ds) => {
+            if (!ds || typeof ds !== "string") return 0;
+            const parts = ds.split(':');
+            if (parts.length < 3) return 0;
+            const h = parseInt(parts[0], 10);
+            const m = parseInt(parts[1], 10);
+            const s = parseFloat(parts[2]);
+            return h + (m / 60) + (s / 3600);
+        };
+
         return trips.map(trip => {
             const devId = trip.device ? trip.device.id : null;
             const deviceName = deviceMap[devId] || devId || "Desconocido";
             const tripStart = new Date(trip.start).getTime();
             const tripStop = new Date(trip.stop).getTime();
+            const driverId = (trip.driver && trip.driver.id) ? trip.driver.id : null;
+            const driverName = driverMap[driverId] || driverId || "Sin Conductor";
             
             let tripFuel = 0;
             if (fuelByDevice[devId]) {
@@ -353,17 +385,31 @@ geotab.addin.rendimiento = function () {
                 tripFuel = matchingFuel.reduce((sum, f) => sum + (f.fuelUsed || 0), 0);
             }
 
+            const drivingHours = parseDurationToHours(trip.drivingDuration);
+            const avgSpeed = (drivingHours > 0) ? (trip.distance / 1000) / drivingHours : 0;
+
             return {
                 id: trip.id,
                 deviceId: devId,
                 deviceName: deviceName,
+                driverName: driverName,
                 start: trip.start,
                 stop: trip.stop,
                 distance: trip.distance || 0,
                 drivingDuration: trip.drivingDuration,
                 stopDuration: trip.stopDuration,
                 maxSpeed: trip.maximumSpeed,
-                fuelUsed: tripFuel
+                averageSpeed: avgSpeed,
+                fuelUsed: tripFuel,
+                workDistance: trip.workDistance || 0,
+                workDrivingDuration: trip.workDrivingDuration,
+                afterHoursDistance: trip.afterHoursDistance || 0,
+                afterHoursDrivingDuration: trip.afterHoursDrivingDuration,
+                workStopDuration: trip.workStopDuration,
+                afterHoursStopDuration: trip.afterHoursStopDuration,
+                nextTripStart: trip.nextTripStart,
+                stopPoint: trip.stopPoint ? `${trip.stopPoint.y.toFixed(5)}, ${trip.stopPoint.x.toFixed(5)}` : "—",
+                isCurrent: trip.isCurrent
             };
         }).filter(t => t.distance > 100);
     };
@@ -694,26 +740,25 @@ geotab.addin.rendimiento = function () {
                     toDate: toDate
                 }
             }],
-            ["Get", {
-                typeName: "FuelUsed",
-                search: {
-                    fromDate: fromDate,
-                    toDate: toDate
-                }
-            }],
-            ["Get", { typeName: "Device" }]
+            ["Get", { typeName: "FuelUsed", search: { fromDate, toDate } }],
+            ["Get", { typeName: "Device" }],
+            ["Get", { typeName: "User", search: { isDriver: true } }]
         ], function (results) {
             var fuelData = results[0] || [];
             var odoData = results[1] || [];
             var tripsRaw = results[2] || [];
             var fuelUsedRaw = results[3] || [];
             var devices = results[4] || [];
+            var drivers = results[5] || [];
 
-            // Build device map (id -> name)
+            // Build maps
             deviceMap = {};
             devices.forEach(function (d) { deviceMap[d.id] = d.name; });
+            const driverMap = {};
+            drivers.forEach(function (dr) { 
+                driverMap[dr.id] = (dr.firstName && dr.lastName) ? (dr.firstName + " " + dr.lastName) : dr.name; 
+            });
 
-            // Populate unit filter dropdown
             populateUnitFilter(devices);
 
             // Enrich StatusData with device names
@@ -736,7 +781,7 @@ geotab.addin.rendimiento = function () {
             filteredRecords = allRecords.slice();
 
             // Process Trips Performance
-            allTrips = processTripsData(tripsRaw, fuelUsedRaw, deviceMap);
+            allTrips = processTripsData(tripsRaw, fuelUsedRaw, deviceMap, driverMap);
             filteredTrips = allTrips.slice();
 
             console.log("[Rendimiento] Fuel StatusData records:", fuelData.length);
