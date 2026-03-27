@@ -737,13 +737,6 @@ geotab.addin.rendimiento = function () {
                 }
             }],
             ["Get", {
-                typeName: "StatusData",
-                search: {
-                    ...commonSearch,
-                    diagnosticSearch: { id: "DiagnosticDeviceTotalIdleFuelId" }
-                }
-            }],
-            ["Get", {
                 typeName: "Trip",
                 search: commonSearch
             }],
@@ -756,11 +749,10 @@ geotab.addin.rendimiento = function () {
         ], function (results) {
             var fuelData = results[0] || [];
             var odoData = results[1] || [];
-            var idleFuelData = results[2] || [];
-            var tripsRaw = results[3] || [];
-            var fuelUsedRaw = results[4] || [];
-            var devices = results[5] || [];
-            var drivers = results[6] || [];
+            var tripsRaw = results[2] || [];
+            var fuelUsedRaw = results[3] || [];
+            var devices = results[4] || [];
+            var drivers = results[5] || [];
 
             // Build maps
             deviceMap = {};
@@ -783,14 +775,9 @@ geotab.addin.rendimiento = function () {
                     s.device.name = deviceMap[s.device.id];
                 }
             });
-            idleFuelData.forEach(function (s) {
-                if (s.device && s.device.id && deviceMap[s.device.id]) {
-                    s.device.name = deviceMap[s.device.id];
-                }
-            });
 
-            // Store raw data for raw table (combine fuel + odo + idle fuel)
-            rawStatusData = [].concat(fuelData, odoData, idleFuelData);
+            // Store raw data for raw table (combine fuel + odo)
+            rawStatusData = [].concat(fuelData, odoData);
 
             // Process into performance records per device
             allRecords = processStatusData(fuelData, odoData, deviceMap);
@@ -802,7 +789,6 @@ geotab.addin.rendimiento = function () {
 
             console.log("[Rendimiento] Fuel StatusData records:", fuelData.length);
             console.log("[Rendimiento] Odometer StatusData records:", odoData.length);
-            console.log("[Rendimiento] Idle Fuel StatusData records:", idleFuelData.length);
             console.log("[Rendimiento] Trips raw:", tripsRaw.length);
             console.log("[Rendimiento] FuelUsed raw:", fuelUsedRaw.length);
             console.log("[Rendimiento] Devices:", devices.length);
