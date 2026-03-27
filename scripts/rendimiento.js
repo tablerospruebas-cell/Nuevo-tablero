@@ -316,7 +316,7 @@ geotab.addin.rendimiento = function () {
                         <span class="date-time">${formatTimeShort(t.stop)}</span>
                     </div>
                 </td>
-                <td style="font-weight:600; text-align:right;">${(t.distance / 1000).toFixed(1)} km</td>
+                <td style="font-weight:600; text-align:right;">${t.distance.toFixed(1)} km</td>
                 <td style="text-align:right;">${t.maxSpeed ? Math.round(t.maxSpeed) + " km/h" : "—"}</td>
                 <td style="text-align:right;">${t.averageSpeed ? Math.round(t.averageSpeed) + " km/h" : "—"}</td>
                 <td style="text-align:right;">${formatDuration(t.drivingDuration)}</td>
@@ -325,9 +325,9 @@ geotab.addin.rendimiento = function () {
                 <td style="text-align:center;">
                     <span class="eff-badge ${effClass}">${eff > 0 ? eff.toFixed(1) + " km/L" : "—"}</span>
                 </td>
-                <td style="text-align:right;">${(t.workDistance / 1000).toFixed(1)} km</td>
+                <td style="text-align:right;">${t.workDistance.toFixed(1)} km</td>
                 <td style="text-align:right;">${formatDuration(t.workDrivingDuration)}</td>
-                <td style="text-align:right;">${(t.afterHoursDistance / 1000).toFixed(1)} km</td>
+                <td style="text-align:right;">${t.afterHoursDistance.toFixed(1)} km</td>
                 <td style="text-align:right;">${formatDuration(t.afterHoursDrivingDuration)}</td>
                 <td style="font-size:0.7rem; color:var(--color-text-muted);">${t.stopPoint}</td>
                 <td>
@@ -386,7 +386,7 @@ geotab.addin.rendimiento = function () {
             }
 
             const drivingHours = parseDurationToHours(trip.drivingDuration);
-            const avgSpeed = (drivingHours > 0) ? (trip.distance / 1000) / drivingHours : 0;
+            const avgSpeed = (drivingHours > 0) ? (trip.distance) / drivingHours : 0;
 
             return {
                 id: trip.id,
