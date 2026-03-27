@@ -476,6 +476,77 @@ geotab.addin.rendimiento = function () {
             tbody.appendChild(tr);
         });
     };
+ 
+    const renderFuelConsumptionTable = (fuelData, deviceMap) => {
+        const tbody = document.getElementById("fuel-summary-tbody");
+        const badge = document.getElementById("badge-fuel-summary");
+        if (!tbody) return;
+ 
+        // Group by device
+        const grouped = {};
+        fuelData.forEach(s => {
+            const devId = s.device ? s.device.id : null;
+            if (!devId) return;
+            if (!grouped[devId]) grouped[devId] = [];
+            grouped[devId].push(s);
+        });
+ 
+        const summaryData = [];
+        for (const devId in grouped) {
+            const readings = grouped[devId];
+            if (readings.length === 0) continue;
+            
+            const values = readings.map(r => r.data || 0);
+            const maxVal = Math.max(...values);
+            const minVal = Math.min(...values);
+            const consumed = maxVal - minVal;
+            
+            // Sort to get date range
+            const sorted = [...readings].sort((a,b) => new Date(a.dateTime) - new Date(b.dateTime));
+            const start = sorted[0].dateTime;
+            const end = sorted[sorted.length - 1].dateTime;
+ 
+            summaryData.push({
+                devId,
+                deviceName: deviceMap[devId] || devId,
+                maxVal,
+                minVal,
+                consumed,
+                start,
+                end
+            });
+        }
+ 
+        if (badge) badge.textContent = `${summaryData.length} unidades`;
+ 
+        tbody.innerHTML = "";
+        if (summaryData.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 2rem;">No hay datos de combustible para este periodo.</td></tr>';
+            return;
+        }
+ 
+        summaryData.sort((a,b) => b.consumed - a.consumed).forEach(row => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td>
+                    <div class="unit-chip">
+                        <div class="unit-dot" style="background: var(--c-orange);"></div>
+                        <span>${row.deviceName}</span>
+                    </div>
+                </td>
+                <td style="text-align:right;">${row.maxVal.toLocaleString("es-MX", {minimumFractionDigits: 2})} L</td>
+                <td style="text-align:right;">${row.minVal.toLocaleString("es-MX", {minimumFractionDigits: 2})} L</td>
+                <td style="text-align:right; font-weight:700; color:var(--c-blue);">${row.consumed.toLocaleString("es-MX", {minimumFractionDigits: 2})} L</td>
+                <td>
+                    <div class="date-cell">
+                        <span class="date-main">${formatDateShort(row.start)}</span>
+                        <span class="date-time">→ ${formatDateShort(row.end)}</span>
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    };
 
     // ─── Reset UI ─────────────────────────────────────────────────────────────
     const resetUI = () => {
@@ -509,6 +580,12 @@ geotab.addin.rendimiento = function () {
 
         const badgeTrips = document.getElementById("badge-trips");
         if (badgeTrips) badgeTrips.textContent = "—";
+
+        const fuelSummaryTbody = document.getElementById("fuel-summary-tbody");
+        if (fuelSummaryTbody) fuelSummaryTbody.innerHTML = Array(3).fill('<tr class="tr-skeleton"><td colspan="5"><div class="td-skel"></div></td></tr>').join("");
+
+        const badgeFuelSummary = document.getElementById("badge-fuel-summary");
+        if (badgeFuelSummary) badgeFuelSummary.textContent = "—";
 
         if (searchInput) searchInput.value = "";
         if (tripsSearchInput) tripsSearchInput.value = "";
@@ -705,6 +782,10 @@ geotab.addin.rendimiento = function () {
 
         // Update Raw Table (filtered by unit)
         renderRawTable(rawStatusData, deviceMap);
+ 
+        // Update Fuel Summary Table
+        const fuelOnly = rawStatusData.filter(s => s.diagnostic && s.diagnostic.id === "DiagnosticDeviceTotalFuelId");
+        renderFuelConsumptionTable(fuelOnly, deviceMap);
     };
 
     // ─── MAIN DATA LOADER ─────────────────────────────────────────────────────
@@ -801,6 +882,7 @@ geotab.addin.rendimiento = function () {
             renderCharts(filteredRecords);
             renderTripsTable(filteredTrips);
             renderRawTable(rawStatusData, deviceMap);
+            renderFuelConsumptionTable(fuelData, deviceMap);
 
             // Trigger filtering if unit was already selected
             if (selectedUnitId !== "all") {
