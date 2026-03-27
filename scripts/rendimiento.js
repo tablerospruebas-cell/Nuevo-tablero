@@ -411,7 +411,7 @@ geotab.addin.rendimiento = function () {
                 stopPoint: trip.stopPoint ? `${trip.stopPoint.y.toFixed(5)}, ${trip.stopPoint.x.toFixed(5)}` : "—",
                 isCurrent: trip.isCurrent
             };
-        }).filter(t => t.distance > 100);
+        });
     };
 
     // ─── Render Raw StatusData Table ──────────────────────────────────────────
@@ -715,32 +715,35 @@ geotab.addin.rendimiento = function () {
 
         const { fromDate, toDate } = getDateRange();
 
+        const commonSearch = { fromDate, toDate, resultsLimit: 100000 };
+        if (selectedUnitId !== "all") {
+            commonSearch.deviceSearch = { id: selectedUnitId };
+        }
+
         // Query StatusData for fuel + odometer diagnostics, plus Device list
         api.multiCall([
             ["Get", {
                 typeName: "StatusData",
                 search: {
-                    fromDate: fromDate,
-                    toDate: toDate,
+                    ...commonSearch,
                     diagnosticSearch: { id: "DiagnosticDeviceTotalFuelId" }
                 }
             }],
             ["Get", {
                 typeName: "StatusData",
                 search: {
-                    fromDate: fromDate,
-                    toDate: toDate,
+                    ...commonSearch,
                     diagnosticSearch: { id: "DiagnosticOdometerId" }
                 }
             }],
             ["Get", {
                 typeName: "Trip",
-                search: {
-                    fromDate: fromDate,
-                    toDate: toDate
-                }
+                search: commonSearch
             }],
-            ["Get", { typeName: "FuelUsed", search: { fromDate, toDate } }],
+            ["Get", { 
+                typeName: "FuelUsed", 
+                search: commonSearch 
+            }],
             ["Get", { typeName: "Device" }],
             ["Get", { typeName: "User", search: { isDriver: true } }]
         ], function (results) {
