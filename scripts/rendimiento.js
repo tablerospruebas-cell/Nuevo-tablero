@@ -165,9 +165,9 @@ geotab.addin.rendimiento = function () {
     };
 
     // ─── Render summary KPIs ─────────────────────────────────────────────────
-    const renderSummary = (records) => {
-        const totalDist = records.reduce((s, r) => s + r.distKm, 0);
-        const totalFuel = records.reduce((s, r) => s + r.fuelUsed, 0);
+    const renderSummary = (records, trips) => {
+        const totalDist = (trips || []).reduce((s, t) => s + (t.distance || 0), 0);
+        const totalFuel = (trips || []).reduce((s, t) => s + (t.fuelUsed || 0), 0);
         const avgKmPerL = totalFuel > 0 ? totalDist / totalFuel : 0;
         const costPerKm = totalDist > 0 ? (totalFuel * 24.5) / totalDist : 0;
         const unidades = records.length;
@@ -700,8 +700,8 @@ geotab.addin.rendimiento = function () {
         if (tripsSearchInput && tripsSearchInput.value) applyTripsSearch(tripsSearchInput.value);
         else renderTripsTable(filteredTrips);
 
-        // Update Summary (KPIs) with filtered records
-        renderSummary(filteredRecords);
+        // Update Summary (KPIs) with filtered records and trips
+        renderSummary(filteredRecords, filteredTrips);
 
         // Update Raw Table (filtered by unit)
         renderRawTable(rawStatusData, deviceMap);
@@ -809,7 +809,7 @@ geotab.addin.rendimiento = function () {
             console.log("[Rendimiento] Performance records:", allRecords.length);
             console.log("[Rendimiento] Processed Trips:", allTrips.length);
 
-            renderSummary(allRecords);
+            renderSummary(allRecords, allTrips);
             renderRanking(allRecords);
             renderTable(filteredRecords);
             renderCharts(filteredRecords);
